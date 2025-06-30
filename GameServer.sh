@@ -11,6 +11,9 @@ fi
 DEFAULT_MAP="${UE_MAP:-LobbyMap}"
 PORT="${UE_PORT:-7777}"
 
+PERFORMANCE_FLAGS="-USEALLAVAILABLECORES -NoVerifyGC -NoSound -NoPak"
+eval "$LOG_CMD $PERFORMANCE_FLAGS" >> "$LOG_PATH" 2>&1
+
 # Validate PROJECT_NAME
 if [ -z "$PROJECT_NAME" ]; then
     echo "Error: PROJECT_NAME environment variable not set"

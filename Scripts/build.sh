@@ -58,3 +58,12 @@ esac
 
 echo "Running BuildCookRun..."
 "$UAT_SCRIPT" BuildCookRun "${COMMON_ARGS[@]}" "${EXTRA_ARGS[@]}"
+
+
+check_changes() {
+    local last_build_file=".last_build_${MODE}"
+    if [ -f "$last_build_file" ]; then
+        # Check if any source files are newer than last build
+        find "$PROJECT_DIR/Source" -newer "$last_build_file" | head -1
+    fi
+}

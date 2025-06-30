@@ -5,3 +5,4 @@ gunicorn>=21.2
 python-decouple>=3.8
 djangorestframework-simplejwt>=5.2
 django-cors-headers>=4.3
+drf-spectacular>=0.26.0

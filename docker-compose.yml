@@ -20,6 +20,11 @@ services:
     depends_on:
       - ue-database  # Wait for database to be ready (if needed)
     restart: unless-stopped  # Auto-restart unless manually stopped
+    healthcheck:
+      test: ["CMD", "netstat", "-an", "|", "grep", ":${UE_PORT}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Django Backend for admin and API
   ue-django-backend:
@@ -27,9 +32,12 @@ services:
       context: .
       dockerfile: DjangoBackend/Dockerfile  # Specify custom Dockerfile
     volumes:
-      - ./DjangoBackend:/app  # Mount backend source code
+      - ./DjangoBackend:/app/DjangoBackend  # Mount backend source code
+      - ./DjangoBackend/config:/app/config:ro
     ports:
       - "8000:8000"  # Expose Django development server
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
     env_file:
       - .env  # Load environment variables (DB config, superuser, etc.)
     depends_on:
@@ -42,15 +50,20 @@ services:
   ue-database:
     image: postgres:15
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${DB_USER}", "-d", "${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
 
 
 

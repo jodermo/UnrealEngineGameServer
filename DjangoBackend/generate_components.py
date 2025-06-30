@@ -4,6 +4,7 @@ from pathlib import Path
 # Path to the JSON config file and Django app folder
 CONFIG_PATH = Path("config/entities.json")
 APP_PATH = Path("DjangoBackend/adminpanel")  # Adjust if your app name is different
+APP_PATH.mkdir(parents=True, exist_ok=True)
 
 # Converts CamelCase to snake_case (currently unused, but could be useful)
 def snake(name):
@@ -12,10 +13,14 @@ def snake(name):
 # Generates a Django model class from the field definitions
 def write_model(name, fields):
     model_code = f"class {name}(models.Model):\n"
-    for field_name, field_type in fields.items():
-        model_code += f"    {field_name} = models.{field_type}\n"
-    model_code += "\n    def __str__(self):\n"
-    model_code += f"        return str(self.id)\n"
+    for field_name, field_def in fields.items():
+        if isinstance(field_def, dict):
+            field_type = field_def["type"]
+            validators = field_def.get("validators", [])
+            model_code += f"    {field_name} = models.{field_type}"
+            if validators:
+                model_code += f", validators={validators}"
+            model_code += "\n"
     return model_code
 
 # Registers the model in Django admin
@@ -51,6 +56,9 @@ class {name}ViewSet(viewsets.ModelViewSet):
 # Main code generation function
 def generate():
     config = json.loads(CONFIG_PATH.read_text())
+
+    # Ensure the output folder exists
+    APP_PATH.mkdir(parents=True, exist_ok=True)
 
     # Boilerplate imports
     models_code = "from django.db import models\n\n"

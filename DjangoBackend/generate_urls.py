@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from django.http import JsonResponse
 
-# Import views safely
+# Import views safely - only if they exist
 try:
     from . import views
     VIEWS_AVAILABLE = True
@@ -16,19 +16,11 @@ if VIEWS_AVAILABLE:
     try:
         router.register(r'players', views.PlayerViewSet)
     except AttributeError:
-        pass
+        pass  # PlayerViewSet not found
     try:
         router.register(r'matches', views.MatchViewSet)
     except AttributeError:
-        pass
-    try:
-        router.register(r'items', views.ItemViewSet)
-    except AttributeError:
-        pass
-    try:
-        router.register(r'guilds', views.GuildViewSet)
-    except AttributeError:
-        pass
+        pass  # MatchViewSet not found
 
 def api_health(request):
     model_info = {}
@@ -43,27 +35,17 @@ def api_health(request):
                 model_info['matches'] = models.Match.objects.count()
             except:
                 model_info['matches'] = 'unavailable'
-            try:
-                model_info['items'] = models.Item.objects.count()
-            except:
-                model_info['items'] = 'unavailable'
-            try:
-                model_info['guilds'] = models.Guild.objects.count()
-            except:
-                model_info['guilds'] = 'unavailable'
         except ImportError:
             pass
 
     return JsonResponse({
         'status': 'ok',
         'views_available': VIEWS_AVAILABLE,
-        'configured_models': ['Player', 'Match', 'Item', 'Guild'],
+        'configured_models': ['Player', 'Match'],
         'model_counts': model_info,
         'endpoints': {
             'players': '/api/players/',
             'matches': '/api/matches/',
-            'items': '/api/items/',
-            'guilds': '/api/guilds/',
         }
     })
 
