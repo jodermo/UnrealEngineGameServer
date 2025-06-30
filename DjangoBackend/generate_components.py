@@ -87,7 +87,7 @@ def generate():
     (APP_PATH / "serializers.py").write_text(serializers_code)
     (APP_PATH / "views.py").write_text(views_code)
 
-    print("✅ Components generated from config!")
+    print("Components generated from config!")
 
 if __name__ == "__main__":
     generate()

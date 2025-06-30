@@ -33,7 +33,7 @@ def generate_views():
 
     # Write the final views.py file into the app directory
     (APP_PATH / "views.py").write_text(code)
-    print("✅ views.py generated from config!")
+    print("views.py generated from config!")
 
 
 # Run the view generation when this script is executed directly

@@ -3,18 +3,6 @@ from .models import *
 
 # Auto-generated Serializers from entities.json config
 
-class ItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Item
-        fields = '__all__'
-        depth = 1
-
-class GuildSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Guild
-        fields = '__all__'
-        depth = 1
-
 class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player

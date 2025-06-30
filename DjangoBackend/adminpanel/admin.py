@@ -5,22 +5,12 @@ from .models import *
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'username', 'guild']
-    search_fields = ['username']
-    list_filter = ['guild']
+    list_display = ['pk'] + [f.name for f in Player._meta.fields[1:6]]  # Show first 5 fields
+    search_fields = ['pk']
+    list_filter = []
 
 @admin.register(Match)
 class MatchAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'match_id', 'start_time', 'winner']
-    search_fields = ['match_id']
-    list_filter = ['start_time']
-
-@admin.register(Item)
-class ItemAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'name']
-    search_fields = ['name']
-
-@admin.register(Guild)
-class GuildAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'name']
-    search_fields = ['name']
+    list_display = ['pk'] + [f.name for f in Match._meta.fields[1:6]]  # Show first 5 fields
+    search_fields = ['pk']
+    list_filter = []
