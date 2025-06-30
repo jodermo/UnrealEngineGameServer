@@ -39,6 +39,12 @@ if [ -f generate_views.py ]; then
   python generate_views.py || true
 fi
 
+
+if [ -f generate_urls.py ]; then
+  echo "Generating URLs..."
+  python generate_urls.py || true
+fi
+
 if [ -f generate_serializers.py ]; then
   echo "Generating Serializers..."
   python generate_serializers.py || true
