@@ -2,6 +2,11 @@
 import json
 from pathlib import Path
 
+# Remove these Django imports - they should only be in the generated file
+# from django.db import models
+# from django.db.models import CASCADE, SET_NULL, PROTECT, SET_DEFAULT, DO_NOTHING
+# from django.contrib.auth.models import User
+
 CONFIG_PATH = Path("config/entities.json")
 APP_PATH = Path("adminpanel")
 
@@ -11,6 +16,7 @@ def generate_models():
         
         code = [
             "from django.db import models",
+            "from django.db.models import CASCADE, SET_NULL, PROTECT, SET_DEFAULT, DO_NOTHING",
             "from django.contrib.auth.models import User",
             "",
             "# Auto-generated models from entities.json config",
@@ -32,11 +38,12 @@ def generate_models():
                         # Process field definition and ensure proper Django imports
                         field_def = field_definition
                         
-                        # Handle Django constants that need models. prefix
-                        django_constants = ['SET_NULL', 'CASCADE', 'PROTECT', 'SET_DEFAULT', 'DO_NOTHING']
+                        # Handle Django constants - no need for models. prefix since we import them directly
+                        django_constants = ['CASCADE', 'SET_NULL', 'PROTECT', 'SET_DEFAULT', 'DO_NOTHING']
                         for constant in django_constants:
                             if f'on_delete={constant}' in field_def:
-                                field_def = field_def.replace(f'on_delete={constant}', f'on_delete=models.{constant}')
+                                # Keep as is since we imported the constants directly
+                                pass
                         
                         # Remove any existing models. prefix to avoid double prefixing
                         field_def = field_def.replace("models.", "")
