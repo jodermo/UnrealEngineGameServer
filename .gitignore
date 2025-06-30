@@ -53,11 +53,15 @@ Thumbs.db
 *~
 
 # Unreal project folders (if working from a monorepo)
-UnrealProjects/*
-Saved/*
-Packaged/*
+UnrealProjects/
+Packaged/
+Saved/
+Scripts/
+logs/
+backups/
 !Packaged/README.m
 .env
+*.tar.gz
 
 # Don't ignore these files
 !README.md

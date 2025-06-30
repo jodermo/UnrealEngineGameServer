@@ -142,6 +142,7 @@ run_generator "generate_serializers.py" "Serializers"
 run_generator "generate_views.py" "Views"
 run_generator "generate_admin.py" "Admin"
 run_generator "generate_urls.py" "URLs"
+run_generator "generate_migrations.py" "Migrations"
 
 echo -e "${GREEN}✅ Component generation completed${NC}"
 

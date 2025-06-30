@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unreal Engine Game Server Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .api-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .api-link {
+            display: block;
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .api-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .api-links {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Unreal Engine Game Server</h1>
+            <p><span class="status-indicator"></span>Backend API & Dashboard</p>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h2>🚀 API Endpoints</h2>
+                <div class="api-links">
+                    <a href="/api/players/" class="api-link">Players</a>
+                    <a href="/api/matches/" class="api-link">Matches</a>
+                    <a href="/api/items/" class="api-link">Items</a>
+                    <a href="/api/guilds/" class="api-link">Guilds</a>
+                    <a href="/api/health/" class="api-link">Health</a>
+                    <a href="/api/schema/" class="api-link">API Docs</a>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>⚙️ Administration</h2>
+                <div class="api-links">
+                    <a href="/admin/" class="api-link">Admin Panel</a>
+                    <a href="/api/" class="api-link">API Browser</a>
+                </div>
+                <p style="margin-top: 15px; color: #666; font-size: 0.9rem;">
+                    Access the Django admin interface to manage your game data directly.
+                </p>
+            </div>
+
+            <div class="card">
+                <h2>📊 Server Stats</h2>
+                <div class="stats" id="stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="players-count">-</div>
+                        <div class="stat-label">Players</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="matches-count">-</div>
+                        <div class="stat-label">Matches</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="items-count">-</div>
+                        <div class="stat-label">Items</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="guilds-count">-</div>
+                        <div class="stat-label">Guilds</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📚 Quick Start Guide</h2>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li>Use <code>/api/</code> endpoints for game data</li>
+                    <li>Admin panel for data management</li>
+                    <li>API documentation at <code>/api/schema/</code></li>
+                    <li>Health check at <code>/api/health/</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Unreal Engine Game Server Backend • Django REST API</p>
+        </div>
+    </div>
+
+    <script>
+        // Fetch and display stats
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/health/');
+                const data = await response.json();
+                
+                if (data.model_counts) {
+                    document.getElementById('players-count').textContent = data.model_counts.players || '0';
+                    document.getElementById('matches-count').textContent = data.model_counts.matches || '0';
+                    document.getElementById('items-count').textContent = data.model_counts.items || '0';
+                    document.getElementById('guilds-count').textContent = data.model_counts.guilds || '0';
+                }
+            } catch (error) {
+                console.log('Could not load stats:', error);
+                // Set fallback values
+                document.getElementById('players-count').textContent = '?';
+                document.getElementById('matches-count').textContent = '?';
+                document.getElementById('items-count').textContent = '?';
+                document.getElementById('guilds-count').textContent = '?';
+            }
+        }
+
+        // Load stats when page loads
+        document.addEventListener('DOMContentLoaded', loadStats);
+        
+        // Refresh stats every 30 seconds
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>

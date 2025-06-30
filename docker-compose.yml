@@ -32,7 +32,7 @@ services:
       context: .
       dockerfile: DjangoBackend/Dockerfile  # Specify custom Dockerfile
     volumes:
-      - ./DjangoBackend:/app/DjangoBackend  # Mount backend source code
+      - ./DjangoBackend:/app  # Mount backend source code
       - ./DjangoBackend/config:/app/config:ro
     ports:
       - "8000:8000"  # Expose Django development server
