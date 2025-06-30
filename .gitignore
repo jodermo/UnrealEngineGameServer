@@ -37,6 +37,8 @@ Thumbs.db
 **/Saved/*
 **/logs/*
 !**/Saved/.gitkeep
+!**/Packaged/.gitkeep
+!**/logs/.gitkeep
 
 # Git submodule/credentials and certs
 .gitmodules
@@ -52,9 +54,10 @@ Thumbs.db
 
 
 # Unreal project folders (if working from a monorepo)
-UnrealProjects/
-Saved/
-Packaged/
+UnrealProjects/*
+Saved/*
+Packaged/*
+!Packaged/README.m
 .env
 
 
