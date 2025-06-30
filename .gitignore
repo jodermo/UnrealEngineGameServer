@@ -50,10 +50,12 @@ Thumbs.db
 *.swp
 *~
 
+
 # Unreal project folders (if working from a monorepo)
 UnrealProjects/
 Saved/
 Packaged/
+.env
 
 
 # Don't ignore these files
