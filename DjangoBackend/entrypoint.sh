@@ -90,11 +90,11 @@ urlpatterns = [
 ]'''
         
         (APP_PATH / 'urls.py').write_text(urls_content)
-        print('✅ URLs generated successfully')
+        print('URLs generated successfully')
     else:
-        print('⚠️ No config file found, keeping minimal URLs')
+        print('No config file found, keeping minimal URLs')
 except Exception as e:
-    print(f'⚠️ URL generation failed: {e}')
+    print(f'URL generation failed: {e}')
 "
 
 # Run migrations
