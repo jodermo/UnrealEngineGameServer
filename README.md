@@ -226,28 +226,6 @@ rm -rf Binaries/ Intermediate/ DerivedDataCache/ Saved/
 
 #### Rebuild the Project
 
-If you're only modifying C++ code (no assets), use this for a 
-faster build:
-
-```bash
-./UnrealProjects/UnrealEngine/Engine/Build/BatchFiles/RunUAT.sh BuildCookRun \
- -project="$(pwd)/UnrealProjects/YourProjectName/YourProjectName.uproject" \
- -noP4 \
- -platform=Linux \
- -targetplatform=Linux \
- -clientconfig=Shipping \
- -serverconfig=Shipping \
- -cook -allmaps \
- -build \
- -stage \
- -pak \
- -archive \
- -server \
- -serverplatform=Linux
-
-docker compose restart
-```
-
 Clean Build Cache (Optional if Build Breaks or Conflicts)
 
 ```bash
