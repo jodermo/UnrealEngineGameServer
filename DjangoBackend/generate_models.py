@@ -1,289 +1,244 @@
-# Generate Django models from your entities.json config
+#!/usr/bin/env python3
+"""
+Generate Django models from entities.json configuration
+Creates models.py with proper field definitions, relationships, and metadata
+"""
+
 import json
+import re
 from pathlib import Path
 
-# Remove these Django imports - they should only be in the generated file
-# from django.db import models
-# from django.db.models import CASCADE, SET_NULL, PROTECT, SET_DEFAULT, DO_NOTHING
-# from django.contrib.auth.models import User
-
+# Configuration paths
 CONFIG_PATH = Path("config/entities.json")
 APP_PATH = Path("adminpanel")
 
+
+def clean_field_definition(field_def):
+    """Clean and validate field definition string"""
+    field_def = field_def.replace("models.", "")
+    constants = ['CASCADE', 'SET_NULL', 'PROTECT', 'SET_DEFAULT', 'DO_NOTHING']
+    for c in constants:
+        field_def = field_def.replace(f"models.{c}", c)
+    return field_def
+
+
+def validate_field_definition(field_name, field_def):
+    warnings = []
+    if "ForeignKey" in field_def and "on_delete" not in field_def:
+        warnings.append(f"ForeignKey '{field_name}' missing on_delete parameter")
+    if "ForeignKey(" in field_def and not ("'" in field_def or '"' in field_def):
+        warnings.append(f"ForeignKey '{field_name}' should quote the related model name")
+    if "CharField(" in field_def and "max_length" not in field_def:
+        warnings.append(f"CharField '{field_name}' missing max_length parameter")
+    return warnings
+
+
+def generate_model_class(model_name, model_config):
+    fields = model_config.get("fields", {})
+    meta = model_config.get("meta", {})
+    methods = model_config.get("methods", {})
+    code = [f"class {model_name}(models.Model):"]
+
+    if not fields:
+        code.append("    pass")
+        return code
+
+    code.extend([
+        f'    """',
+        f'    {model_name} model',
+        f'    Auto-generated from entities.json configuration',
+        f'    """',
+        ""
+    ])
+
+    all_warnings = []
+    for fname, fdef in fields.items():
+        if isinstance(fdef, str):
+            warnings = validate_field_definition(fname, fdef)
+            all_warnings.extend(warnings)
+            cleaned = clean_field_definition(fdef)
+            code.append(f"    {fname} = models.{cleaned}")
+        elif isinstance(fdef, dict):
+            ftype = fdef.get("type", "CharField(max_length=255)")
+            validators = fdef.get("validators", [])
+            help_text = fdef.get("help_text", "")
+            line = f"    {fname} = models.{ftype}"
+            if validators:
+                line += f", validators={validators}"
+            if help_text:
+                line += f", help_text='{help_text}'"
+            code.append(line)
+        else:
+            code.append(f"    {fname} = models.CharField(max_length=255)  # TODO")
+
+    code.append("")
+    code.append("    class Meta:")
+    code.append(f"        verbose_name = '{model_name}'")
+    code.append(f"        verbose_name_plural = '{model_name}s'")
+
+    if meta:
+        for k, v in meta.items():
+            if k == "ordering" and isinstance(v, list):
+                ordering = ", ".join(f"'{item}'" for item in v)
+                code.append(f"        ordering = ({ordering},)")
+            elif k == "indexes" and isinstance(v, list):
+                indexes = []
+                for idx in v:
+                    if isinstance(idx, dict) and "fields" in idx:
+                        fields_list = ", ".join(f"'{f}'" for f in idx["fields"])
+                        indexes.append(f"models.Index(fields=[{fields_list}])")
+                if indexes:
+                    code.append(f"        indexes = [{', '.join(indexes)}]")
+            elif k in ["unique_together", "permissions"] and isinstance(v, list):
+                code.append(f"        {k} = {v}")
+            elif isinstance(v, str):
+                code.append(f"        {k} = '{v}'")
+
+    code.append("")
+    code.append("    def __str__(self):")
+    code.append("        return self.__unicode__()")
+    code.append("")
+
+    # __unicode__ method
+    display_field = next((f for f, d in fields.items()
+                          if any(t in str(d) for t in ['CharField', 'TextField', 'EmailField']) and
+                          ('unique=True' in str(d) or f in ['name', 'title', 'username', 'email'])), None)
+    if display_field:
+        code.append("    def __unicode__(self):")
+        code.append(f"        return str(self.{display_field})")
+    else:
+        code.append("    def __unicode__(self):")
+        code.append(f"        return f'{model_name} {{self.pk}}'")
+    code.append("")
+
+    # Custom methods
+    for mname, mbody in methods.items():
+        code.append(f"    def {mname}(self):")
+        code.append(f"        {mbody}")
+        code.append("")
+
+    # Utility methods
+    code.extend([
+        "    def get_absolute_url(self):",
+        "        from django.urls import reverse",
+        f"        return reverse('{model_name.lower()}-detail', kwargs={{'pk': self.pk}})",
+        "",
+        "    @classmethod",
+        "    def get_recent(cls, limit=10):",
+        "        return cls.objects.order_by('-id')[:limit]",
+        ""
+    ])
+
+    if all_warnings:
+        print(f"Warnings for {model_name}:")
+        for w in all_warnings:
+            print(f"  - {w}")
+
+    return code
+
+
 def generate_models():
-    try:
-        config = json.loads(CONFIG_PATH.read_text())
-        
-        code = [
-            "from django.db import models",
-            "from django.db.models import CASCADE, SET_NULL, PROTECT, SET_DEFAULT, DO_NOTHING",
-            "from django.contrib.auth.models import User",
-            "",
-            "# Auto-generated models from entities.json config",
-            ""
-        ]
-        
-        # Generate each model
-        for model_name, model_config in config.items():
-            code.append(f"class {model_name}(models.Model):")
-            
-            # Add fields
-            fields = model_config.get("fields", {})
-            if not fields:
-                code.append("    pass  # No fields defined")
-            else:
-                for field_name, field_definition in fields.items():
-                    # Handle string field definitions
-                    if isinstance(field_definition, str):
-                        # Process field definition and ensure proper Django imports
-                        field_def = field_definition
-                        
-                        # Handle Django constants - no need for models. prefix since we import them directly
-                        django_constants = ['CASCADE', 'SET_NULL', 'PROTECT', 'SET_DEFAULT', 'DO_NOTHING']
-                        for constant in django_constants:
-                            if f'on_delete={constant}' in field_def:
-                                # Keep as is since we imported the constants directly
-                                pass
-                        
-                        # Remove any existing models. prefix to avoid double prefixing
-                        field_def = field_def.replace("models.", "")
-                        
-                        code.append(f"    {field_name} = models.{field_def}")
-                    else:
-                        # Handle dict field definitions (for future expansion)
-                        code.append(f"    {field_name} = models.CharField(max_length=255)  # TODO: Configure properly")
-            
-            # Add metadata
-            code.extend([
-                "",
-                "    class Meta:",
-                f"        verbose_name = '{model_name}'",
-                f"        verbose_name_plural = '{model_name}s'",
-                f"        db_table = '{model_name.lower()}'",
-                "",
-                "    def __str__(self):",
-                f"        return f'{model_name} {{self.pk}}'",
-                ""
-            ])
-        
-        # Write the models file
-        models_code = "\n".join(code)
-        (APP_PATH / "models.py").write_text(models_code)
-        print("models.py generated from config!")
-        
-        return config
-        
-    except Exception as e:
-        print(f"Error generating models: {e}")
-        return {}
+    if not CONFIG_PATH.exists():
+        print("No entities.json found.")
+        return False
 
-def generate_views(config):
-    try:
-        code = [
-            "from rest_framework import viewsets, permissions",
-            "from rest_framework.decorators import action",
-            "from rest_framework.response import Response",
-            "from django.http import JsonResponse",
-            "from .models import *",
-            "from .serializers import *",
-            "",
-            "# Auto-generated ViewSets from entities.json config",
-            ""
-        ]
-        
-        for model_name, model_config in config.items():
-            permissions_list = model_config.get("permissions", ["read", "create", "update", "delete"])
-            
-            code.extend([
-                f"class {model_name}ViewSet(viewsets.ModelViewSet):",
-                f"    queryset = {model_name}.objects.all()",
-                f"    serializer_class = {model_name}Serializer",
-                f"    permission_classes = [permissions.IsAuthenticatedOrReadOnly]",
-                "",
-                f"    # Permissions: {permissions_list}",
-                ""
-            ])
-        
-        views_code = "\n".join(code)
-        (APP_PATH / "views.py").write_text(views_code)
-        print("views.py generated from config!")
-        
-    except Exception as e:
-        print(f"Error generating views: {e}")
+    config = json.loads(CONFIG_PATH.read_text())
+    print(f"Loaded configuration with {len(config)} models")
 
-def generate_serializers(config):
-    try:
-        code = [
-            "from rest_framework import serializers",
-            "from .models import *",
-            "",
-            "# Auto-generated Serializers from entities.json config",
-            ""
-        ]
-        
-        for model_name, model_config in config.items():
-            serializer_options = model_config.get("serializer_options", {})
-            depth = serializer_options.get("depth", 1)
-            exclude_fields = serializer_options.get("exclude", [])
-            
-            code.extend([
-                f"class {model_name}Serializer(serializers.ModelSerializer):",
-                "    class Meta:",
-                f"        model = {model_name}",
-                f"        fields = '__all__'",
-            ])
-            
-            if exclude_fields:
-                code.append(f"        exclude = {exclude_fields}")
-            
-            code.extend([
-                f"        depth = {depth}",
-                ""
-            ])
-        
-        serializers_code = "\n".join(code)
-        (APP_PATH / "serializers.py").write_text(serializers_code)
-        print("serializers.py generated from config!")
-        
-    except Exception as e:
-        print(f"Error generating serializers: {e}")
+    header = [
+        "from django.db import models",
+        "from django.db.models import CASCADE, SET_NULL, PROTECT, SET_DEFAULT, DO_NOTHING",
+        "from django.contrib.auth.models import User",
+        "from django.core.validators import MinValueValidator, MaxValueValidator",
+        "from django.utils import timezone",
+        "",
+        "# Auto-generated models",
+        ""
+    ]
 
-def generate_admin(config):
-    try:
-        code = [
-            "from django.contrib import admin",
-            "from .models import *",
-            "",
-            "# Auto-generated Admin from entities.json config",
-            ""
-        ]
-        
-        for model_name in config.keys():
-            code.extend([
-                f"@admin.register({model_name})",
-                f"class {model_name}Admin(admin.ModelAdmin):",
-                f"    list_display = ['pk'] + [f.name for f in {model_name}._meta.fields[1:6]]  # Show first 5 fields",
-                f"    search_fields = ['pk']",
-                f"    list_filter = []",
-                ""
-            ])
-        
-        admin_code = "\n".join(code)
-        (APP_PATH / "admin.py").write_text(admin_code)
-        print("admin.py generated from config!")
-        
-    except Exception as e:
-        print(f"Error generating admin: {e}")
+    model_dependencies = {}
+    for mname, mconfig in config.items():
+        deps = []
+        for fname, fdef in mconfig.get("fields", {}).items():
+            match = re.search(r"(ForeignKey|OneToOneField)\s*\(\s*['\"]([^'\"]+)['\"]", str(fdef))
+            if match:
+                target = match.group(2)
+                if target != mname and target in config:
+                    deps.append(target)
+        model_dependencies[mname] = deps
 
-def generate_urls(config=None):
-    """Generate URLs based on config"""
+    def sort_models(deps_map):
+        sorted_models = []
+        remaining = set(deps_map.keys())
+        while remaining:
+            ready = [m for m in remaining if all(d in sorted_models for d in deps_map[m])]
+            if not ready:
+                ready = list(remaining)
+            for m in ready:
+                sorted_models.append(m)
+                remaining.remove(m)
+        return sorted_models
+
+    sorted_names = sort_models(model_dependencies)
+    all_lines = header[:]
+    for m in sorted_names:
+        all_lines += generate_model_class(m, config[m])
+        all_lines.append("")
+
+    # Utility functions
+    all_lines += [
+        "# Utility functions",
+        "def get_all_model_counts():",
+        "    counts = {}",
+    ]
+    for m in config:
+        all_lines.append(f"    counts['{m.lower()}'] = {m}.objects.count()")
+    all_lines += [
+        "    return counts",
+        "",
+        "def get_model_by_name(model_name):",
+        "    models_map = {",
+    ]
+    for m in config:
+        all_lines.append(f"        '{m.lower()}': {m},")
+    all_lines += [
+        "    }",
+        "    return models_map.get(model_name.lower())",
+    ]
+
+    output_path = APP_PATH / "models.py"
+    output_path.write_text("\n".join(all_lines))
+    print(f"Models generated at {output_path}")
+    return config
+
+
+def validate_models():
+    path = APP_PATH / "models.py"
+    if not path.exists():
+        print("models.py not found.")
+        return False
     try:
-        if config is None:
-            # Try to load config if not provided
-            if CONFIG_PATH.exists():
-                config = json.loads(CONFIG_PATH.read_text())
-            else:
-                config = {}
-        
-        code = [
-            "from django.urls import path, include",
-            "from rest_framework.routers import DefaultRouter",
-            "from django.http import JsonResponse",
-            "",
-            "# Import views safely",
-            "try:",
-            "    from . import views",
-            "    VIEWS_AVAILABLE = True",
-            "except ImportError:",
-            "    VIEWS_AVAILABLE = False",
-            "",
-            "router = DefaultRouter()",
-            "",
-            "# Register ViewSets if views are available",
-            "if VIEWS_AVAILABLE:"
-        ]
-        
-        for model_name in config.keys():
-            route = model_name.lower() + 's'
-            code.extend([
-                f"    try:",
-                f"        router.register(r'{route}', views.{model_name}ViewSet)",
-                f"    except AttributeError:",
-                f"        pass"
-            ])
-        
-        code.extend([
-            "",
-            "def api_health(request):",
-            "    model_info = {}",
-            "    if VIEWS_AVAILABLE:",
-            "        try:",
-            "            from . import models"
-        ])
-        
-        for model_name in config.keys():
-            code.extend([
-                f"            try:",
-                f"                model_info['{model_name.lower()}s'] = models.{model_name}.objects.count()",
-                f"            except:",
-                f"                model_info['{model_name.lower()}s'] = 'unavailable'"
-            ])
-        
-        code.extend([
-            "        except ImportError:",
-            "            pass",
-            "",
-            "    return JsonResponse({",
-            "        'status': 'ok',",
-            "        'views_available': VIEWS_AVAILABLE,",
-            f"        'configured_models': {list(config.keys())},",
-            "        'model_counts': model_info,",
-            "        'endpoints': {"
-        ])
-        
-        for model_name in config.keys():
-            route = model_name.lower() + 's'
-            code.append(f"            '{route}': '/api/{route}/',")
-        
-        code.extend([
-            "        }",
-            "    })",
-            "",
-            "urlpatterns = [",
-            "    path('health/', api_health, name='api-health'),",
-            "    path('', include(router.urls)),",
-            "]"
-        ])
-        
-        urls_code = "\n".join(code)
-        (APP_PATH / "urls.py").write_text(urls_code)
-        print("URLs generated successfully")
-        
+        compile(path.read_text(), str(path), 'exec')
+        print("models.py is valid.")
+        return True
     except Exception as e:
-        print(f"Error generating URLs: {e}")
+        print(f"Validation failed: {e}")
+        return False
+
 
 def main():
-    print("Generating Django components from entities.json...")
-    
-    # Generate all components
+    print("Generating Django models from entities.json...")
+    APP_PATH.mkdir(parents=True, exist_ok=True)
     config = generate_models()
-    if config:
-        generate_serializers(config)
-        generate_views(config)
-        generate_admin(config)
-        
-        # Generate URLs last
-        generate_urls(config)
-        
-        print(f"Generated components for {len(config)} models:")
-        for model_name in config.keys():
-            print(f"   - {model_name}")
-        
-        print("Next steps:")
-        print("   1. Run: python manage.py makemigrations")
-        print("   2. Run: python manage.py migrate")
-        print("   3. Create superuser: python manage.py createsuperuser")
-        print("   4. Test API at: http://localhost:8000/api/health/")
+    if config and validate_models():
+        print(f"Successfully generated {len(config)} models.")
+        print("Run the following commands to proceed:")
+        print("  python manage.py makemigrations adminpanel")
+        print("  python manage.py migrate")
+        return True
+    return False
+
 
 if __name__ == "__main__":
-    main()
+    import sys
+    sys.exit(0 if main() else 1)

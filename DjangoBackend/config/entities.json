@@ -2,13 +2,13 @@
   "Player": {
     "fields": {
       "username": "CharField(max_length=50, unique=True)",
-      "inventory": "ManyToManyField('Item', blank=True)",
-      "guild": "ForeignKey('Guild', on_delete=DO_NOTHING, null=True)"
+      "email": "EmailField()",
+      "created_at": "DateTimeField(auto_now_add=True)"
     },
-    "permissions": ["read", "update"],
-    "serializer_options": {
-      "depth": 2,
-      "exclude": ["password"]
+    "meta": {
+      "ordering": [
+        "-created_at"
+      ]
     }
   },
   "Match": {
