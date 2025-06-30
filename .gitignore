@@ -1,0 +1,67 @@
+# Unreal Engine build artifacts
+/Binaries/
+/Build/
+/DerivedDataCache/
+/Intermediate/
+/Saved/
+
+# Ignore project solution and IDE-specific files
+*.sln
+*.opensdf
+*.sdf
+*.suo
+*.VC.db
+*.VC.opendb
+*.xcodeproj
+*.xcworkspace
+
+# User-specific or local settings
+*.log
+*.tmp
+*.user
+*.userprefs
+*.uo
+*.ini
+
+# System files
+*.DS_Store
+Thumbs.db
+
+# Docker artifacts and containers
+*.tar
+*.img
+*.container
+
+# Ignore all saved runtime data (but allow folder itself)
+**/Packaged/*
+**/Saved/*
+**/logs/*
+!**/Saved/.gitkeep
+
+# Git submodule/credentials and certs
+.gitmodules
+*.pem
+*.key
+*.crt
+
+# Editor/IDE settings
+.vscode/
+.idea/
+*.swp
+*~
+
+# Unreal project folders (if working from a monorepo)
+UnrealProjects/
+Saved/
+Packaged/
+
+
+# Don't ignore these files
+!README.md
+!**/README.md
+!Saved/README.md
+!Packaged/README.md
+!logs/README.md
+!**/Packaged/README.md
+!**/Packaged/README.md
+!**/Packaged/README.md

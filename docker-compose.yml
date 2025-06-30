@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Unreal Engine Dedicated Server
+  ue-game-server:
+    build:
+      context: .
+      args:
+        PROJECT_NAME: ${PROJECT_NAME} 
+        PROJECT_DIR: ${PROJECT_DIR} 
+        ARCHIVE_DIR: ${ARCHIVE_DIR}
+        UNREAL_ENGINE_PATH: ${UNREAL_ENGINE_PATH}
+    env_file:
+      - .env  # Environment variables like UE_PORT, UE_MAP, etc.
+    ports:
+      - "${UE_PORT}:${UE_PORT}/udp"  # Game port exposed via UDP
+    volumes:
+      - ./${ARCHIVE_DIR}:/home/ue-server/UnrealProjects/${PROJECT_NAME}:ro  # Read-only build data
+      - ./logs:/var/log/ue
+    depends_on:
+      - ue-database  # Wait for database to be ready (if needed)
+    restart: unless-stopped  # Auto-restart unless manually stopped
+
+  # Django Backend for admin and API
+  ue-django-backend:
+    build:
+      context: .
+      dockerfile: DjangoBackend/Dockerfile  # Specify custom Dockerfile
+    volumes:
+      - ./DjangoBackend:/app  # Mount backend source code
+    ports:
+      - "8000:8000"  # Expose Django development server
+    env_file:
+      - .env  # Load environment variables (DB config, superuser, etc.)
+    depends_on:
+      ue-database:
+        condition: service_healthy
+    entrypoint: ["/app/entrypoint.sh"]  # Custom startup script
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  ue-database:
+    image: postgres:15
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DB_USER}", "-d", "${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+
+volumes:
+  postgres_data:  # Named volume for database persistence
