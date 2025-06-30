@@ -61,9 +61,3 @@ Packaged/
 # Don't ignore these files
 !README.md
 !**/README.md
-!Saved/README.md
-!Packaged/README.md
-!logs/README.md
-!**/Packaged/README.md
-!**/Packaged/README.md
-!**/Packaged/README.md
