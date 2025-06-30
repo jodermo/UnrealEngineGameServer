@@ -26,7 +26,7 @@ EOF
 # Auto-generate Django components if those scripts exist
 if [ -f generate_components.py ]; then
   echo "Generating admin..."
-  python generate_components.py || true
+  python generate_admin.py || true
 fi
 
 if [ -f generate_models.py ]; then
