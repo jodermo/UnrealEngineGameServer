@@ -2,7 +2,7 @@
 
 **Author:** [Moritz Petzka](https://github.com/jodermo) • [petzka.com](https://petzka.com) • [info@petzka.com](mailto:info@petzka.com)
 
-#### Unreal Engine dedicated server as Docker container with included Django backend and database for admin tools and dynamic REST-API
+#### Unreal Engine dedicated Linux server as Docker container with included Django backend and database for admin tools and dynamic REST-API
 
 ### Features
 
@@ -163,6 +163,7 @@ cd ~/UnrealProjects/UnrealEngine
 #### First make it Executable:
 ```bash
 sudo chmod +x Scripts/build.sh
+sudo chmod +x Scripts/gen_server_target.sh
 ```
 
 ####  Example Usage:
