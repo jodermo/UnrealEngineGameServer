@@ -238,7 +238,8 @@ rm -rf Binaries/ Intermediate/ DerivedDataCache/ Saved/
 # Optional: Clean Unreal's build state
 ./UnrealProjects/UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool.exe -Clean
 
-docker compose restart
+docker-compose down
+docker-compose up --build
 ```
 
 If you're just rebuilding code and not changing content:
@@ -248,7 +249,8 @@ If you're just rebuilding code and not changing content:
 rm -rf Saved Intermediate DerivedDataCache
 
 
-docker compose restart
+docker-compose down
+docker-compose up --build
 ```
 <br>
 
@@ -273,7 +275,7 @@ docker compose restart
         "match_id": "CharField(max_length=32, unique=True)",
         "start_time": "DateTimeField()",
         "end_time": "DateTimeField(null=True, blank=True)",
-        "winner": "ForeignKey('Player', on_delete=models.SET_NULL, null=True)"
+        "winner": "ForeignKey('Player', on_delete=models.DO_NOTHING, null=True)"
       }
     },
     ... add more fields if needed

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 CONFIG_PATH = Path("config/entities.json")
-APP_PATH = Path("DjangoBackend/adminpanel")
+APP_PATH = Path("adminpanel")
 
 def generate_models():
     try:
@@ -29,8 +29,18 @@ def generate_models():
                 for field_name, field_definition in fields.items():
                     # Handle string field definitions
                     if isinstance(field_definition, str):
-                        # Clean up the field definition
-                        field_def = field_definition.replace("models.", "")
+                        # Process field definition and ensure proper Django imports
+                        field_def = field_definition
+                        
+                        # Handle Django constants that need models. prefix
+                        django_constants = ['SET_NULL', 'CASCADE', 'PROTECT', 'SET_DEFAULT', 'DO_NOTHING']
+                        for constant in django_constants:
+                            if f'on_delete={constant}' in field_def:
+                                field_def = field_def.replace(f'on_delete={constant}', f'on_delete=models.{constant}')
+                        
+                        # Remove any existing models. prefix to avoid double prefixing
+                        field_def = field_def.replace("models.", "")
+                        
                         code.append(f"    {field_name} = models.{field_def}")
                     else:
                         # Handle dict field definitions (for future expansion)
@@ -86,41 +96,6 @@ def generate_views(config):
                 f"    # Permissions: {permissions_list}",
                 ""
             ])
-            
-            # Add custom actions based on permissions
-            if "read" not in permissions_list:
-                code.extend([
-                    "    def list(self, request):",
-                    "        return Response({'error': 'List not permitted'}, status=403)",
-                    "",
-                    "    def retrieve(self, request, pk=None):",
-                    "        return Response({'error': 'Retrieve not permitted'}, status=403)",
-                    ""
-                ])
-            
-            if "create" not in permissions_list:
-                code.extend([
-                    "    def create(self, request):",
-                    "        return Response({'error': 'Create not permitted'}, status=403)",
-                    ""
-                ])
-            
-            if "update" not in permissions_list:
-                code.extend([
-                    "    def update(self, request, pk=None):",
-                    "        return Response({'error': 'Update not permitted'}, status=403)",
-                    "",
-                    "    def partial_update(self, request, pk=None):",
-                    "        return Response({'error': 'Partial update not permitted'}, status=403)",
-                    ""
-                ])
-            
-            if "delete" not in permissions_list:
-                code.extend([
-                    "    def destroy(self, request, pk=None):",
-                    "        return Response({'error': 'Delete not permitted'}, status=403)",
-                    ""
-                ])
         
         views_code = "\n".join(code)
         (APP_PATH / "views.py").write_text(views_code)
@@ -193,6 +168,93 @@ def generate_admin(config):
     except Exception as e:
         print(f"Error generating admin: {e}")
 
+def generate_urls(config=None):
+    """Generate URLs based on config"""
+    try:
+        if config is None:
+            # Try to load config if not provided
+            if CONFIG_PATH.exists():
+                config = json.loads(CONFIG_PATH.read_text())
+            else:
+                config = {}
+        
+        code = [
+            "from django.urls import path, include",
+            "from rest_framework.routers import DefaultRouter",
+            "from django.http import JsonResponse",
+            "",
+            "# Import views safely",
+            "try:",
+            "    from . import views",
+            "    VIEWS_AVAILABLE = True",
+            "except ImportError:",
+            "    VIEWS_AVAILABLE = False",
+            "",
+            "router = DefaultRouter()",
+            "",
+            "# Register ViewSets if views are available",
+            "if VIEWS_AVAILABLE:"
+        ]
+        
+        for model_name in config.keys():
+            route = model_name.lower() + 's'
+            code.extend([
+                f"    try:",
+                f"        router.register(r'{route}', views.{model_name}ViewSet)",
+                f"    except AttributeError:",
+                f"        pass"
+            ])
+        
+        code.extend([
+            "",
+            "def api_health(request):",
+            "    model_info = {}",
+            "    if VIEWS_AVAILABLE:",
+            "        try:",
+            "            from . import models"
+        ])
+        
+        for model_name in config.keys():
+            code.extend([
+                f"            try:",
+                f"                model_info['{model_name.lower()}s'] = models.{model_name}.objects.count()",
+                f"            except:",
+                f"                model_info['{model_name.lower()}s'] = 'unavailable'"
+            ])
+        
+        code.extend([
+            "        except ImportError:",
+            "            pass",
+            "",
+            "    return JsonResponse({",
+            "        'status': 'ok',",
+            "        'views_available': VIEWS_AVAILABLE,",
+            f"        'configured_models': {list(config.keys())},",
+            "        'model_counts': model_info,",
+            "        'endpoints': {"
+        ])
+        
+        for model_name in config.keys():
+            route = model_name.lower() + 's'
+            code.append(f"            '{route}': '/api/{route}/',")
+        
+        code.extend([
+            "        }",
+            "    })",
+            "",
+            "urlpatterns = [",
+            "    path('health/', api_health, name='api-health'),",
+            "    path('', include(router.urls)),",
+            "]"
+        ])
+        
+        urls_code = "\n".join(code)
+        (APP_PATH / "urls.py").write_text(urls_code)
+        print("URLs generated successfully")
+        
+    except Exception as e:
+        print(f"Error generating URLs: {e}")
+
 def main():
     print("Generating Django components from entities.json...")
     
@@ -204,14 +266,13 @@ def main():
         generate_admin(config)
         
         # Generate URLs last
-        pass
-        generate_urls()
+        generate_urls(config)
         
-        print(f"\nGenerated components for {len(config)} models:")
+        print(f"Generated components for {len(config)} models:")
         for model_name in config.keys():
             print(f"   - {model_name}")
         
-        print("\nNext steps:")
+        print("Next steps:")
         print("   1. Run: python manage.py makemigrations")
         print("   2. Run: python manage.py migrate")
         print("   3. Create superuser: python manage.py createsuperuser")

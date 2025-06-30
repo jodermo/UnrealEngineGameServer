@@ -51,7 +51,7 @@ This folder contains a Django-based backend for managing and monitoring your Unr
       "match_id": "CharField(max_length=32, unique=True)",
       "start_time": "DateTimeField()",
       "end_time": "DateTimeField(null=True, blank=True)",
-      "winner": "ForeignKey('Player', on_delete=models.SET_NULL, null=True)"
+      "winner": "ForeignKey('Player', on_delete=models.DO_NOTHING, null=True)"
     }
   }
 }

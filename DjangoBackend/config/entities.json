@@ -3,7 +3,7 @@
     "fields": {
       "username": "CharField(max_length=50, unique=True)",
       "inventory": "ManyToManyField('Item', blank=True)",
-      "guild": "ForeignKey('Guild', on_delete=models.SET_NULL, null=True)"
+      "guild": "ForeignKey('Guild', on_delete=DO_NOTHING, null=True)"
     },
     "permissions": ["read", "update"],
     "serializer_options": {
@@ -16,7 +16,25 @@
       "match_id": "CharField(max_length=32, unique=True)",
       "start_time": "DateTimeField()",
       "end_time": "DateTimeField(null=True, blank=True)",
-      "winner": "ForeignKey('Player', on_delete=models.SET_NULL, null=True)"
+      "winner": "ForeignKey('Player', on_delete=DO_NOTHING, null=True)"
+    }
+  },
+  "Item": {
+    "fields": {
+      "name": "CharField(max_length=100)",
+      "description": "TextField(blank=True, null=True)",
+      "item_type": "CharField(max_length=50, default='common')",
+      "value": "IntegerField(default=0)",
+      "rarity": "CharField(max_length=20, default='common')"
+    }
+  },
+  "Guild": {
+    "fields": {
+      "name": "CharField(max_length=100, unique=True)",
+      "description": "TextField(blank=True, null=True)",
+      "created_at": "DateTimeField(auto_now_add=True)",
+      "member_count": "IntegerField(default=0)",
+      "is_active": "BooleanField(default=True)"
     }
   }
 }

@@ -59,14 +59,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wsgi.application'
 
-# Database configuration
+# Database configuration - FIXED to use Docker service name
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'HOST': os.getenv('DB_HOST', 'ue-database'),  # Changed from localhost to ue-database
         'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
