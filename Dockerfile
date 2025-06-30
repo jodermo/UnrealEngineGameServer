@@ -4,7 +4,7 @@ FROM ubuntu:22.04
 # Build arguments for project name and archive directory
 ARG PROJECT_NAME=UnrealEngineGame
 ARG PROJECT_DIR=UnrealProjects/YourProjectName
-ARG ARCHIVE_DIR=Packaged/EvolutionGame
+ARG ARCHIVE_DIR=Packaged/YourProjectName
 
 # Set environment variables for use during runtime
 ENV PROJECT_NAME=${PROJECT_NAME}
