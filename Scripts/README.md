@@ -1,7 +1,6 @@
-# Packaged Project Files
+# Build Sripts
 
-
-Use scripts to build, and automatically generate your server files:
+Use scripts to build, cook, and package your game for Linux dedicated server deployment:
 
 ```bash
 # Rebuild C++ code only (fast)
@@ -16,5 +15,3 @@ Use scripts to build, and automatically generate your server files:
 # Full package (default)
 ./Scripts/build.sh full
 ```
-
-Or drop your generated server files here

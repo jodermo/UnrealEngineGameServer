@@ -56,24 +56,19 @@ make
 
 #### 4. Build Your Game Server
 
-Use Unreal’s RunUAT.sh script to build, cook, and package your game for Linux dedicated server deployment:
+Use scripts to build, cook, and package your game for Linux dedicated server deployment:
 
 ```bash
-./UnrealProjects/UnrealEngine/Engine/Build/BatchFiles/RunUAT.sh BuildCookRun \
- -project="$(pwd)/UnrealProjects/YourProjectName/YourProjectName.uproject" \
- -noP4 \
- -platform=Linux \
- -targetplatform=Linux \
- -clientconfig=Shipping \
- -serverconfig=Shipping \
- -cook -allmaps \
- -build \
- -stage \
- -pak \
- -archive \
- -archivedirectory="$(pwd)/Packaged/YourProjectName" \
- -server \
- -serverplatform=Linux
+# Rebuild C++ code only (fast)
+./Scripts/build.sh code
 
+# Only blueprint changes
+./Scripts/build.sh blueprints
+
+# Full cook for content changes (no code changes)
+./Scripts/build.sh content
+
+# Full package (default)
+./Scripts/build.sh full
 ```
 
