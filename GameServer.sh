@@ -1,28 +1,33 @@
 #!/bin/bash
+set -e
 
-# Optional: enable logging
+# Enable optional logging
+LOG_FLAG=""
 if [[ "$UE_LOGGING" == "1" ]]; then
     LOG_FLAG="-log"
-else
-    LOG_FLAG=""
 fi
 
-# Default to LobbyMap if not set
 DEFAULT_MAP="${UE_MAP:-LobbyMap}"
 PORT="${UE_PORT:-7777}"
-
 PERFORMANCE_FLAGS="-USEALLAVAILABLECORES -NoVerifyGC -NoSound -NoPak"
+BUILD_CONFIG="${BUILD_CONFIG:Shipping}"
 
-# Validate PROJECT_NAME
-if [ -z "$PROJECT_NAME" ]; then
+# Validate required variables
+if [[ -z "$PROJECT_NAME" ]]; then
     echo "Error: PROJECT_NAME environment variable not set"
     exit 1
 fi
 
-# Correct path to packaged server binary
-SERVER_BINARY="./UnrealProjects/${PROJECT_NAME}/LinuxServer/${PROJECT_NAME}/Binaries/Linux/${PROJECT_NAME}Server-Linux-Shipping"
+SEARCH_ROOT="/home/ue-server/UnrealProjects/${PROJECT_NAME}/Binaries/Linux/"
+SERVER_BINARY=$(find "$SEARCH_ROOT" -type f -name "${PROJECT_NAME}Server-Linux-${BUILD_CONFIG}" | head -n 1)
 
-# Show config
+if [[ -z "$SERVER_BINARY" ]]; then
+    echo "Error: Could not find server binary in $SEARCH_ROOT"
+    find "$SEARCH_ROOT" -name "*Server*" -type f || echo "No server files found"
+    sleep infinity
+    exit 1
+fi
+
 echo "Starting server:"
 echo "  Binary: $SERVER_BINARY"
 echo "  Map: $DEFAULT_MAP"
@@ -32,28 +37,15 @@ echo "  Logging: $LOG_FLAG"
 mkdir -p /var/log/ue
 LOG_PATH="/var/log/ue/server.log"
 
-# Check if binary exists
-if [ ! -f "$SERVER_BINARY" ]; then
-    echo "Error: Server binary not found at $SERVER_BINARY"
-    echo "Available files in LinuxServer directory:"
-    find "./UnrealProjects/${PROJECT_NAME}/LinuxServer/" -name "*Server*" -type f 2>/dev/null || echo "No server files found"
-    echo "Sleeping for inspection..."
-    sleep infinity
-    exit 1
-fi
+cd "$(dirname "$SERVER_BINARY")"
 
-# Make binary executable
-chmod +x "$SERVER_BINARY"
+echo "Executing from: $(pwd)"
+echo "Command: $(basename "$SERVER_BINARY") $DEFAULT_MAP -port=$PORT -skiploadplugins -noutiltrace $PERFORMANCE_FLAGS $LOG_FLAG"
 
-# Build the command
-LOG_CMD="$SERVER_BINARY $DEFAULT_MAP -port=$PORT -skiploadplugins -noutiltrace $PERFORMANCE_FLAGS $LOG_FLAG"
+# Run the server and log both to console and file
+"./$(basename "$SERVER_BINARY")" "$DEFAULT_MAP" -port="$PORT" -skiploadplugins -noutiltrace $PERFORMANCE_FLAGS "$LOG_FLAG" \
+  2>&1 | tee -a "$LOG_PATH"
 
-# Show full command for clarity
-echo "Executing: $LOG_CMD"
 
-# Run the Unreal server binary with the selected map, port, and optional logging
-eval "$LOG_CMD" >> "$LOG_PATH" 2>&1
-
-# Fallback if exec fails
-echo "Server exited. Sleeping for inspection..."
-sleep infinity
+echo "Server exited."
+exit 0

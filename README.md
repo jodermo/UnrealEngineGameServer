@@ -163,7 +163,10 @@ cd ~/UnrealProjects/UnrealEngine
 #### First make it Executable:
 ```bash
 sudo chmod +x Scripts/build.sh
+sudo chmod +x Scripts/clean_build.sh
 sudo chmod +x Scripts/gen_server_target.sh
+sudo chmod +x Scripts/copy_project_files.sh
+
 ```
 
 ####  Example Usage:
@@ -177,9 +180,25 @@ sudo chmod +x Scripts/gen_server_target.sh
 # Full cook for content changes (no code changes)
 ./Scripts/build.sh content
 
+# Build server binaries
+./Scripts/build.sh server
+
 # Full package (default)
 ./Scripts/build.sh full
+
+# Clean build
+./Scripts/clean_build.sh
 ```
+
+| Mode         | Description                     | Cook | Build | Pak | Archive         |
+| ------------ | ------------------------------- | ---- | ----- | --- | --------------- |
+| `code`       | C++ only, no cook/pak/archive   | ❌    | ✅     | ❌   | ❌               |
+| `blueprints` | Blueprint change only           | ✅    | ❌     | ✅   | ❌               |
+| `content`    | Content-only changes            | ✅    | ❌     | ✅   | ❌               |
+| `server`     | Server binaries only (new mode) | ❌    | ✅     | ❌   | ❌ (manual copy) |
+| `full`       | Full cook + pak + archive       | ✅    | ✅     | ✅   | ✅               |
+
+
 YourProjectNameServer is auto-generated when you enable Dedicated Server support.
 
 Ensure you have `bUsesSteam=false` (if you're not configuring Steam) in DefaultEngine.ini under OnlineSubsystem.

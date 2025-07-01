@@ -6,22 +6,23 @@ services:
     build:
       context: .
       args:
-        PROJECT_NAME: ${PROJECT_NAME} 
+        PROJECT_NAME: ${PROJECT_NAME}
         PROJECT_DIR: ${PROJECT_DIR} 
-        ARCHIVE_DIR: ${ARCHIVE_DIR}
         UNREAL_ENGINE_PATH: ${UNREAL_ENGINE_PATH}
+        BUILD_CONFIG: ${BUILD_CONFIG}
     env_file:
       - .env  # Environment variables like UE_PORT, UE_MAP, etc.
     ports:
       - "${UE_PORT}:${UE_PORT}/udp"  # Game port exposed via UDP
     volumes:
-      - ./${ARCHIVE_DIR}:/home/ue-server/UnrealProjects/${PROJECT_NAME}:ro  # Read-only build data
+      # - ./${UNREAL_ENGINE_PATH}:/home/ue-server/UnrealProjects/UnrealEngine:ro # Build data
+      - ./${PROJECT_DIR}:/home/ue-server/UnrealProjects/${PROJECT_NAME}:ro # Build data
       - ./logs:/var/log/ue
     depends_on:
       - ue-database  # Wait for database to be ready (if needed)
     restart: unless-stopped  # Auto-restart unless manually stopped
     healthcheck:
-      test: ["CMD", "netstat", "-an", "|", "grep", ":${UE_PORT}"]
+      test: ["CMD-SHELL", "pgrep -f '${PROJECT_NAME}Server'"]
       interval: 30s
       timeout: 10s
       retries: 3

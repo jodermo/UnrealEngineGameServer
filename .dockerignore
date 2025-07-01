@@ -1,0 +1,16 @@
+# Ignore Unreal Engine intermediate and cache directories
+UnrealProjects/*/Intermediate/
+UnrealProjects/*/Saved/
+UnrealProjects/*/DerivedDataCache/
+UnrealProjects/*/Build/
+
+# Ignore version control and IDE/editor config folders
+UnrealProjects/**/.vs/
+UnrealProjects/**/.idea/
+UnrealProjects/**/.vscode/
+UnrealProjects/**/.vsconfig
+
+# Ignore project and editor workspace files
+UnrealProjects/**/*.sln
+UnrealProjects/**/*.code-workspace
+UnrealProjects/**/.gitignore
