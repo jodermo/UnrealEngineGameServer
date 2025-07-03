@@ -30,7 +30,7 @@ if [[ -z "$MODE" ]]; then
 fi
 
 # -- Validate required env vars
-REQUIRED_VARS=("PROJECT_NAME" "BUILD_CONFIG" "PROJECT_DIR" "UNREAL_ENGINE_PATH")
+REQUIRED_VARS=("PROJECT_NAME" "BUILD_DIR" "BUILD_CONFIG" "PROJECT_DIR" "UNREAL_ENGINE_PATH")
 for VAR in "${REQUIRED_VARS[@]}"; do
   if [ -z "${!VAR}" ]; then
     echo "Missing env var: $VAR"
@@ -42,7 +42,16 @@ done
 ROOT_DIR="$(pwd)"
 UPROJECT="$ROOT_DIR/$PROJECT_DIR/$PROJECT_NAME.uproject"
 UAT_SCRIPT="$ROOT_DIR/$UNREAL_ENGINE_PATH/Engine/Build/BatchFiles/RunUAT.sh"
+UBT_SCRIPT="$ROOT_DIR/$UNREAL_ENGINE_PATH/Engine/Build/BatchFiles/Linux/Build.sh"
+
 BUILD_TRACK_FILE="$ROOT_DIR/.last_build_${MODE}"
+EDITOR_TARGET_PATH="$ROOT_DIR/$PROJECT_DIR/Binaries/Linux/${PROJECT_NAME}Editor.target"
+
+# -- Ensure EvolutionGameEditor.target exists (required for full cook)
+if [[ "$MODE" == "full" && ! -f "$EDITOR_TARGET_PATH" ]]; then
+  echo "Missing EvolutionGameEditor.target. Building editor target..."
+  "$UBT_SCRIPT" ${PROJECT_NAME}Editor Linux  "$BUILD_CONFIG" "$UPROJECT"
+fi
 
 # -- Check for source changes
 check_changes() {
@@ -78,23 +87,23 @@ COMMON_ARGS=(
 case "$MODE" in
   code)
     echo "Building: C++ only (no cook, no pak, no archive)"
-    EXTRA_ARGS=(-build -skipcook -skipstage -pak)
+    EXTRA_ARGS=(-build -basedir="$ROOT_DIR/$PROJECT_DIR" -skipcook -archive -skipstage -pak -archivedirectory="$ROOT_DIR/$BUILD_DIR" -trace=default)
     ;;
   blueprints)
     echo "Building: Blueprint-only changes (cook without rebuild)"
-    EXTRA_ARGS=(-cook -stage -pak -skipbuild -nocompile)
+    EXTRA_ARGS=(-cook -basedir="$ROOT_DIR/$PROJECT_DIR" -stage -archive -pak -skipbuild -nocompile -archivedirectory="$ROOT_DIR/$BUILD_DIR" -trace=default)
     ;;
   content)
     echo "Building: Content-only (cook + pak only)"
-    EXTRA_ARGS=(-cook -stage -pak -skipbuild -nocompileeditor -allcontent -includeenginecontent)
+    EXTRA_ARGS=(-cook -basedir="$ROOT_DIR/$PROJECT_DIR" -stage -archive -pak -skipbuild -nocompileeditor -allcontent -cookall -includeenginecontent -archivedirectory="$ROOT_DIR/$BUILD_DIR" -trace=default)
     ;;
   server)
-    echo "Building: Server binaries only (no cook, no pak, no archive)"
-    EXTRA_ARGS=(-build -server -allcontent -includeenginecontent -skipcook -skipstage -skippackage -noclean -nocompileeditor)
+    echo "Building: Server binaries only (no cook, no pak)"
+    EXTRA_ARGS=(-build -basedir="$ROOT_DIR/$PROJECT_DIR" -server -archive -allcontent -includeenginecontent -skipcook -skipstage -skippackage -noclean -nocompileeditor -archivedirectory="$ROOT_DIR/$BUILD_DIR" -trace=default)
     ;;
   full | *)
     echo "Building: Full package"
-    EXTRA_ARGS=(-cook -build -stage -server -pak -archive -allcontent -includeenginecontent -nocompileeditor)
+    EXTRA_ARGS=(-cook -build -basedir="$ROOT_DIR/$PROJECT_DIR" -stage -server -pak -archive -allcontent -cookall -includeenginecontent -nocompileeditor -archivedirectory="$ROOT_DIR/$BUILD_DIR" -trace=default)
     ;;
 esac
 
@@ -104,8 +113,18 @@ mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/build_${MODE}_$(date +%F_%H-%M-%S).log"
 
 # -- Run UAT
+echo "Ensuring Editor target is built in Development configuration (required for cook)..."
+"$ROOT_DIR/$UNREAL_ENGINE_PATH/Engine/Build/BatchFiles/Linux/Build.sh" \
+  "${PROJECT_NAME}Editor" \
+  Development \
+  Linux \
+  -project="$UPROJECT" \
+  -waitmutex \
+  -nointellisense
+
 echo "Running BuildCookRun..."
 "$UAT_SCRIPT" BuildCookRun "${COMMON_ARGS[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$LOG_FILE"
+
 
 # -- Stamp build time
 touch "$BUILD_TRACK_FILE"

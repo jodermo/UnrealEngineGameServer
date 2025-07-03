@@ -5,11 +5,13 @@ FROM ubuntu:22.04
 ARG PROJECT_NAME=UnrealEngineGame
 ARG PROJECT_DIR=UnrealProjects/YourProjectName
 ARG UNREAL_ENGINE_PATH=UnrealProjects/UnrealEngine
+ARG BUILD_DIR=UnrealProjects/YourProjectName/ArchivedBuilds
 
 # Set environment variables for use during runtime
 ENV PROJECT_NAME=${PROJECT_NAME}
 ENV PROJECT_DIR=${PROJECT_DIR}
 ENV UNREAL_ENGINE_PATH=${UNREAL_ENGINE_PATH}
+ENV BUILD_DIR=${BUILD_DIR}
 
 # Metadata
 LABEL maintainer="Moritz Petzka - info@petzka.com"
@@ -37,20 +39,20 @@ COPY ./GameServer.sh ./
 # Copy your project files into the container
 # COPY ${PROJECT_DIR}/ ./UnrealProjects/${PROJECT_NAME}/
 # Copy only what's needed for the runtime server
-COPY ${PROJECT_DIR}/Binaries/ /UnrealProjects/${PROJECT_NAME}/Binaries/
-COPY ${PROJECT_DIR}/Config/ /UnrealProjects/${PROJECT_NAME}/Config/
-COPY ${PROJECT_DIR}/Content/ /UnrealProjects/${PROJECT_NAME}/Content/
-COPY ${PROJECT_DIR}/EvolutionGame.uproject /UnrealProjects/${PROJECT_NAME}/
 
-COPY ${UNREAL_ENGINE_PATH}/Engine/Content/Internationalization /UnrealProjects/${PROJECT_NAME}/Engine/Content/Internationalization
+COPY ${BUILD_DIR} /${PROJECT_NAME}Server/Build/
 
-COPY ${UNREAL_ENGINE_PATH}/Engine/Content/EngineResources /UnrealProjects/${PROJECT_NAME}/Engine/EngineResources
-COPY ${UNREAL_ENGINE_PATH}/Engine/Content/EngineMeshes /UnrealProjects/${PROJECT_NAME}/Engine/EngineMeshes
-COPY ${UNREAL_ENGINE_PATH}/Engine/Content/BasicShapes /UnrealProjects/${PROJECT_NAME}/Engine/Content/BasicShapes
+# COPY ${PROJECT_DIR}/${PROJECT_NAME}.uproject ./${PROJECT_NAME}Server/
 
-COPY ${UNREAL_ENGINE_PATH}/Engine/Plugins/2D/Paper2D /UnrealProjects/${PROJECT_NAME}/Paper2D
-COPY ${UNREAL_ENGINE_PATH}/Engine/Plugins/Runtime/HairStrands /UnrealProjects/${PROJECT_NAME}/HairStrands
-COPY ${UNREAL_ENGINE_PATH}/Engine/Plugins/VirtualProduction/CameraCalibrationCore/ /UnrealProjects/${PROJECT_NAME}/CameraCalibrationCore
+# COPY ${UNREAL_ENGINE_PATH}/Engine/Content/Internationalization /UnrealProjects/${PROJECT_NAME}/Binaries/Linux/Engine/Content/Internationalization
+
+# COPY ${UNREAL_ENGINE_PATH}/Engine/Content/EngineResources /UnrealProjects/${PROJECT_NAME}/Binaries/Linux/Engine/EngineResources
+# COPY ${UNREAL_ENGINE_PATH}/Engine/Content/EngineMeshes /UnrealProjects/${PROJECT_NAME}/Binaries/Linux/Engine/EngineMeshes
+# COPY ${UNREAL_ENGINE_PATH}/Engine/Content/BasicShapes /UnrealProjects/${PROJECT_NAME}/Binaries/Linux/Engine/Content/BasicShapes
+
+# COPY ${UNREAL_ENGINE_PATH}/Engine/Plugins/2D/Paper2D /UnrealProjects/${PROJECT_NAME}/Binaries/Linux/Paper2D
+# COPY ${UNREAL_ENGINE_PATH}/Engine/Plugins/Runtime/HairStrands /UnrealProjects/${PROJECT_NAME}/Binaries/Linux/HairStrands
+# COPY ${UNREAL_ENGINE_PATH}/Engine/Plugins/VirtualProduction/CameraCalibrationCore/ /UnrealProjects/${PROJECT_NAME}/Binaries/Linux/CameraCalibrationCore
 
 
 
@@ -72,4 +74,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD pgrep -f "${PROJECT_NAME}Server" || exit 1
 
 # Start the server using the launch script
-ENTRYPOINT ["/home/ue-server/GameServer.sh"]
+ENTRYPOINT ["/home/ue-server/GameServer.sh"]: 
+  

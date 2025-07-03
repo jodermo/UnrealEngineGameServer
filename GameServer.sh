@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 
 # Enable optional logging
@@ -18,8 +19,8 @@ if [[ -z "$PROJECT_NAME" ]]; then
     exit 1
 fi
 
-SEARCH_ROOT="/home/ue-server/UnrealProjects/${PROJECT_NAME}/Binaries/Linux/"
-SERVER_BINARY=$(find "$SEARCH_ROOT" -type f -name "${PROJECT_NAME}Server-Linux-${BUILD_CONFIG}" | head -n 1)
+SEARCH_ROOT="/home/ue-server/${PROJECT_NAME}Server/Build/Linux/${PROJECT_NAME}/Binaries/Linux"
+SERVER_BINARY=$(find "$SEARCH_ROOT" -type f -name "${PROJECT_NAME}-Linux-${BUILD_CONFIG}" | head -n 1)
 
 if [[ -z "$SERVER_BINARY" ]]; then
     echo "Error: Could not find server binary in $SEARCH_ROOT"
@@ -48,4 +49,4 @@ echo "Command: $(basename "$SERVER_BINARY") $DEFAULT_MAP -port=$PORT -skiploadpl
 
 
 echo "Server exited."
-exit 0
+exit 0 ... version: '3.8'
