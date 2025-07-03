@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg
+*.egg-info/
+dist/
+build/
+*.manifest
+
+# Virtual environment
+.env
+.venv/
+venv/
+ENV/
+env.bak/
+env/
+
+# Django-specific
+*.log
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static_root/
+*.mo
+instance/
+
+# Django migrations
+**/migrations/**/__pycache__/
+**/migrations/**/*.py[cod]
+**/migrations/**/migrations/
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# MyPy & Pyright
+.mypy_cache/
+.pyright/
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+
+# Testing
+.pytest_cache/
+.testmondata
+
+# Docker
+*.pid
+*.pid.lock
+
+# Environments or secrets
+.env.*
+*.secret
+secrets.json
