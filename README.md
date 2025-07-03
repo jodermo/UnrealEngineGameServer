@@ -300,3 +300,38 @@ docker-compose up --build
     ... add more fields if needed
 }
   ```
+
+<br>
+
+  ### Troubleshooting
+
+
+- #### Build Error
+  e.g.
+  ```
+  Compile Module.GeometryCollectionEngine.2.cpp
+  In file included from /home/<username>/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Intermediate/Build/Linux/x64/UnrealEditor/Development/GeometryCollectionEngine/Module.GeometryCollectionEngine.2.cpp:19:
+  /home/jodermo/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Source/Runtime/Experimental/GeometryCollectionEngine/Private/GeometryCollection/GeometryCollectionSceneProxy.cpp:43:10: fatal error: 'GeometryCollectionSceneProxy.ispc.generated.h' file not found
+    43 | #include "GeometryCollectionSceneProxy.ispc.generated.h"
+        |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  1 error generated.
+
+  ```
+  
+  #### Solution: 
+    Install ispc
+    
+    ```bash
+
+    cd ~/Downloads
+    wget https://github.com/ispc/ispc/releases/download/v1.23.0/ispc-v1.23.0-linux.tar.gz
+
+    tar -xvzf ispc-v1.23.0-linux.tar.gz
+    cd ispc-v1.23.0-linux
+
+    sudo cp bin/ispc /usr/local/bin/
+
+    ispc --version
+
+    ```
+
