@@ -62,6 +62,7 @@ backups/
 !Packaged/README.m
 .env
 *.tar.gz
+.last_build_full
 
 # Don't ignore these files
 !README.md
