@@ -1,9 +1,4 @@
-# Unreal Engine build artifacts
-/Binaries/
-/Build/
-/DerivedDataCache/
-/Intermediate/
-/Saved/
+
 
 # Ignore project solution and IDE-specific files
 *.sln
@@ -53,12 +48,19 @@ Thumbs.db
 *~
 
 # Unreal project folders (if working from a monorepo)
-UnrealProjects/
-Packaged/
-Saved/
-Scripts/
-logs/
-backups/
+*/**/UnrealProjects/
+*/**/Packaged/
+*/**/Scripts/
+*/**/logs/
+*/**/backups/
+
+*/**/Binaries/
+*/**/Build/
+*/**/DerivedDataCache/
+*/**/Intermediate/
+*/**/Saved/
+
+
 !Packaged/README.m
 .env
 *.tar.gz
