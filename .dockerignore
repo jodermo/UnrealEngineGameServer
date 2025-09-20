@@ -2,7 +2,7 @@
 UnrealProjects/*/Intermediate/
 UnrealProjects/*/Saved/
 UnrealProjects/*/DerivedDataCache/
-UnrealProjects/*/Build/
+
 
 # Ignore version control and IDE/editor config folders
 UnrealProjects/**/.vs/

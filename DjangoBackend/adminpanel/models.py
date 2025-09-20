@@ -6,37 +6,6 @@ from django.utils import timezone
 
 # Auto-generated models
 
-class Guild(models.Model):
-    """
-    Guild model
-    Auto-generated from entities.json configuration
-    """
-
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    member_count = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        verbose_name = 'Guild'
-        verbose_name_plural = 'Guilds'
-
-    def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return str(self.name)
-
-    def get_absolute_url(self):
-        from django.urls import reverse
-        return reverse('guild-detail', kwargs={'pk': self.pk})
-
-    @classmethod
-    def get_recent(cls, limit=10):
-        return cls.objects.order_by('-id')[:limit]
-
-
 class Item(models.Model):
     """
     Item model
@@ -92,6 +61,37 @@ class Player(models.Model):
     def get_absolute_url(self):
         from django.urls import reverse
         return reverse('player-detail', kwargs={'pk': self.pk})
+
+    @classmethod
+    def get_recent(cls, limit=10):
+        return cls.objects.order_by('-id')[:limit]
+
+
+class Guild(models.Model):
+    """
+    Guild model
+    Auto-generated from entities.json configuration
+    """
+
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    member_count = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Guild'
+        verbose_name_plural = 'Guilds'
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return str(self.name)
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('guild-detail', kwargs={'pk': self.pk})
 
     @classmethod
     def get_recent(cls, limit=10):

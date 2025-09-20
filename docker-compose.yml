@@ -1,3 +1,4 @@
+version: '3.8'
 
 services:
   # Unreal Engine Dedicated Server
@@ -5,46 +6,54 @@ services:
     build:
       context: .
       args:
-        PROJECT_NAME: ${PROJECT_NAME}
-        PROJECT_DIR: ${PROJECT_DIR} 
-        UNREAL_ENGINE_PATH: ${UNREAL_ENGINE_PATH}
-        BUILD_CONFIG: ${BUILD_CONFIG}
-        BUILD_DIR: ${BUILD_DIR}
+        PROJECT_NAME: ${PROJECT_NAME:-EvolutionGame}
+        PROJECT_DIR: ${PROJECT_DIR:-UnrealProjects/EvolutionGame}
+        BUILD_CONFIG: ${BUILD_CONFIG:-Shipping}
+        BUILD_DIR: ${BUILD_DIR:-UnrealProjects/EvolutionGame/Build/LinuxServer}
     env_file:
-      - .env  # Environment variables like UE_PORT, UE_MAP, etc.
+      - .env
     ports:
-      - "${UE_PORT}:${UE_PORT}/udp"  # Game port exposed via UDP
+      - "${UE_PORT:-7777}:${UE_PORT:-7777}/udp"
+      - "${UE_QUERY_PORT:-27015}:${UE_QUERY_PORT:-27015}/udp"
     volumes:
-      # - ./${UNREAL_ENGINE_PATH}:/home/ue-server/UnrealProjects/UnrealEngine:ro # Build data
-      - ./${PROJECT_DIR}/ArchivedBuilds:/home/ue-server/${PROJECT_NAME}Server/Build:ro # Build data
-      - ./logs:/var/log/ue
-    depends_on:
-      - ue-database  # Wait for database to be ready (if needed)
-    restart: unless-stopped  # Auto-restart unless manually stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pgrep -f '${PROJECT_NAME}Server'"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Django Backend for admin and API
-  ue-django-backend:
-    build:
-      context: .
-      dockerfile: DjangoBackend/Dockerfile  # Specify custom Dockerfile
-    volumes:
-      - ./DjangoBackend:/app  # Mount backend source code
-      - ./DjangoBackend/config:/app/config:ro
-    ports:
-      - "8000:8000"  # Expose Django development server
-    environment:
-      - DJANGO_SETTINGS_MODULE=config.settings
-    env_file:
-      - .env  # Load environment variables (DB config, superuser, etc.)
+      - ./logs/server:/home/ue-server/${PROJECT_NAME}Server/Saved/Logs
+      - ./logs/crashes:/home/ue-server/${PROJECT_NAME}Server/Saved/Crashes
+      - ./logs/abs:/home/ue-server/logs
+      # Dev-only mount: comment/remove for production
+      - ./${BUILD_DIR:-UnrealProjects/EvolutionGame/Build/LinuxServer}/:/home/ue-server/${PROJECT_NAME}Server
+      - ./GameServer.sh:/home/ue-server/${PROJECT_NAME}Server/GameServer.sh
     depends_on:
       ue-database:
         condition: service_healthy
-    entrypoint: ["/app/entrypoint.sh"]  # Custom startup script
+      ue-django-backend:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z -u 127.0.0.1 ${UE_QUERY_PORT:-27015} || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+
+
+  # Django Backend
+  ue-django-backend:
+    build:
+      context: .
+      dockerfile: DjangoBackend/Dockerfile
+    volumes:
+      - ./DjangoBackend:/app
+      - ./DjangoBackend/config:/app/config:ro
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+    env_file:
+      - .env
+    depends_on:
+      ue-database:
+        condition: service_healthy
+    entrypoint: ["/app/entrypoint.sh"]
     restart: unless-stopped
 
   # PostgreSQL Database
@@ -52,21 +61,20 @@ services:
     image: postgres:15
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-uegame}
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-securepassword}
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
+    ports:
+      - "5432:5432"
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${DB_USER}", "-d", "${DB_NAME}"]
+      test: ["CMD", "pg_isready", "-U", "${DB_USER:-admin}", "-d", "${DB_NAME:-uegame}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-
-
-
 volumes:
-  postgres_data:  # Named volume for database persistence
+  postgres_data:

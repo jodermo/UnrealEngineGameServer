@@ -1,52 +1,138 @@
 #!/bin/bash
-
 set -e
 
-# Enable optional logging
-LOG_FLAG=""
-if [[ "$UE_LOGGING" == "1" ]]; then
-    LOG_FLAG="-log"
+# -----------------------------
+# Config (override via .env)
+# -----------------------------
+PROJECT_NAME=${PROJECT_NAME:-EvolutionGame}
+UE_PORT=${UE_PORT:-7777}
+UE_QUERY_PORT=${UE_QUERY_PORT:-27015}
+UE_MAP=${UE_MAP:-/Game/EvolutionGame/Levels/LobbyMap}
+UE_LOGGING=${UE_LOGGING:-1}
+BUILD_CONFIG=${BUILD_CONFIG:-Shipping}
+UE_DEBUG=${UE_DEBUG:-0}   # Set to 1 for gdb backtrace
+
+BINARY="./LinuxServer/${PROJECT_NAME}/Binaries/Linux/${PROJECT_NAME}Server-Linux-${BUILD_CONFIG}"
+LOG_FILE="/home/ue-server/logs/Server.log"
+
+echo "========== Unreal Engine Dedicated Server Startup =========="
+echo " Project Name : $PROJECT_NAME"
+echo " Binary Path  : $BINARY"
+echo " Map          : $UE_MAP"
+echo " Ports        : Game=$UE_PORT, Query=$UE_QUERY_PORT"
+echo " Build Config : $BUILD_CONFIG"
+echo " Logging      : $UE_LOGGING"
+echo " Debug Mode   : $UE_DEBUG"
+echo "============================================================"
+
+# -----------------------------
+# Binary sanity check
+# -----------------------------
+if [ ! -f "$BINARY" ]; then
+  echo "[ERROR] Could not find server binary at $BINARY"
+  echo "[DEBUG] Available contents under ./LinuxServer:"
+  ls -R ./LinuxServer || true
+  exit 1
 fi
 
-DEFAULT_MAP="${UE_MAP:-LobbyMap}"
-PORT="${UE_PORT:-7777}"
-PERFORMANCE_FLAGS="-USEALLAVAILABLECORES -NoVerifyGC -NoSound -NoPak"
-BUILD_CONFIG="${BUILD_CONFIG:Shipping}"
+echo "[DEBUG] Binary info:"
+ls -lh "$BINARY"
+command -v file >/dev/null 2>&1 && file "$BINARY" || echo "[WARN] 'file' command not available"
 
-# Validate required variables
-if [[ -z "$PROJECT_NAME" ]]; then
-    echo "Error: PROJECT_NAME environment variable not set"
-    exit 1
+# -----------------------------
+# Engine config check
+# -----------------------------
+if [ ! -d "./LinuxServer/Engine/Config" ]; then
+  echo "[WARN] Engine config directory missing!"
+  ls -R ./LinuxServer/Engine || true
 fi
 
-SEARCH_ROOT="/home/ue-server/${PROJECT_NAME}Server/Build/Linux/${PROJECT_NAME}/Binaries/Linux"
-SERVER_BINARY=$(find "$SEARCH_ROOT" -type f -name "${PROJECT_NAME}-Linux-${BUILD_CONFIG}" | head -n 1)
+# -----------------------------
+# Ensure logs dir + core dumps
+# -----------------------------
+mkdir -p /home/ue-server/logs
+ulimit -c unlimited || echo "[WARN] Failed to enable core dumps"
 
-if [[ -z "$SERVER_BINARY" ]]; then
-    echo "Error: Could not find server binary in $SEARCH_ROOT"
-    find "$SEARCH_ROOT" -name "*Server*" -type f || echo "No server files found"
-    sleep infinity
-    exit 1
+# -----------------------------
+# Dependency check
+# -----------------------------
+echo "[DEBUG] Checking binary dependencies..."
+MISSING=$(ldd "$BINARY" 2>/dev/null | grep "not found" || true)
+if [ -n "$MISSING" ]; then
+  echo "[ERROR] Missing shared libraries:"
+  echo "$MISSING"
+  exit 1
+else
+  echo "[OK] All required shared libraries found."
 fi
 
-echo "Starting server:"
-echo "  Binary: $SERVER_BINARY"
-echo "  Map: $DEFAULT_MAP"
-echo "  Port: $PORT"
-echo "  Logging: $LOG_FLAG"
+# -----------------------------
+# Environment diagnostics
+# -----------------------------
+echo "[DEBUG] Environment diagnostics:"
+uname -a
+ldd --version | head -n 1 || true
+df -h /
+free -h || true
 
-mkdir -p /var/log/ue
-LOG_PATH="/var/log/ue/server.log"
-
-cd "$(dirname "$SERVER_BINARY")"
-
-echo "Executing from: $(pwd)"
-echo "Command: $(basename "$SERVER_BINARY") $DEFAULT_MAP -port=$PORT -skiploadplugins -noutiltrace $PERFORMANCE_FLAGS $LOG_FLAG"
-
-# Run the server and log both to console and file
-"./$(basename "$SERVER_BINARY")" "$DEFAULT_MAP" -port="$PORT" -skiploadplugins -noutiltrace $PERFORMANCE_FLAGS "$LOG_FLAG" \
-  2>&1 | tee -a "$LOG_PATH"
+# Verify map exists in cooked paks
+if ! strings ./LinuxServer/${PROJECT_NAME}/Content/Paks/*.pak | grep -q "$(basename $UE_MAP)"; then
+  echo "[ERROR] Map $UE_MAP not found in cooked content! Check Project Settings -> Packaging -> Maps to Cook."
+  exit 1
+fi
 
 
-echo "Server exited."
-exit 0 ... version: '3.8'
+# -----------------------------
+# Build argument list
+# -----------------------------
+ARGS=(
+  "$UE_MAP?listen"
+  -Port="$UE_PORT"
+  -QueryPort="$UE_QUERY_PORT"
+  -unattended
+  -NoCrashDialog
+  -nobeautifuloutput
+  -logtimes
+  -log
+)
+
+if [ "$UE_LOGGING" = "1" ]; then
+  ARGS+=(-AbsLog="$LOG_FILE")
+fi
+
+echo "[INFO] Launching server with arguments:"
+for arg in "${ARGS[@]}"; do
+  echo "   $arg"
+done
+
+# -----------------------------
+# Run with or without gdb
+# -----------------------------
+if [ "$UE_DEBUG" -eq 1 ]; then
+  echo "[DEBUG] Running under gdb for backtrace..."
+  gdb -batch -ex "run" -ex "bt" --args "$BINARY" "${ARGS[@]}"
+  EXIT_CODE=$?
+  echo "[INFO] Server exited with code $EXIT_CODE"
+else
+  exec "$BINARY" "${ARGS[@]}"
+fi
+
+# -----------------------------
+# Log output (exec path won't reach here, only gdb path)
+# -----------------------------
+if [ -f "$LOG_FILE" ]; then
+  echo "--- Last 100 lines of log ---"
+  tail -n 100 "$LOG_FILE" | sed 's/^/[UE] /'
+else
+  echo "[WARN] No log file created! Falling back to stdout only."
+fi
+
+# -----------------------------
+# Core dump check
+# -----------------------------
+if ls core* &>/dev/null; then
+  echo "[DEBUG] Core dump(s) detected:"
+  ls -lh core*
+fi
+
+exit $EXIT_CODE

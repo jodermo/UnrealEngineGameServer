@@ -1,22 +1,31 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ ! -f "$SCRIPT_DIR/clear_build.sh" ]]; then
-  echo "Missing clear_build.sh"
+CLEAR_BUILD="$SCRIPT_DIR/clear_build.sh"
+CLEAR_ENGINE="$SCRIPT_DIR/clear_engine.sh"
+
+# -----------------------------
+# Validate scripts exist
+# -----------------------------
+if [[ ! -x "$CLEAR_BUILD" ]]; then
+  echo "[ERROR] clear_build.sh not found or not executable: $CLEAR_BUILD"
   exit 1
 fi
 
-if [[ ! -f "$SCRIPT_DIR/clear_engine.sh" ]]; then
-  echo "Missing clear_engine.sh"
+if [[ ! -x "$CLEAR_ENGINE" ]]; then
+  echo "[ERROR] clear_engine.sh not found or not executable: $CLEAR_ENGINE"
   exit 1
 fi
 
-echo "Running clear_build.sh..."
-"$SCRIPT_DIR/clear_build.sh"
+# -----------------------------
+# Run cleanup
+# -----------------------------
+echo "[INFO] Running project cleanup..."
+"$CLEAR_BUILD"
 
-echo "Running clear_engine.sh..."
-"$SCRIPT_DIR/clear_engine.sh"
+echo "[INFO] Running engine cleanup..."
+"$CLEAR_ENGINE"
 
-echo "All cleanup completed."
+echo "[INFO] All cleanup completed successfully."

@@ -84,7 +84,7 @@ docker-compose down -v
 
 <br>
 
-## Guide to Build Your Unreal Engine Project For Linux Server
+## Guide To Package Your Unreal Engine Project For Linux Server
 
 File structure overview:
 
@@ -151,14 +151,16 @@ mkdir -p ~/UnrealProjects/YourProjectName
 ```
 Copy your Windows project into this directory or clone from a repo
 
-#### To build the Linux dedicated server:
-
-```bash
-cd ~/UnrealProjects/UnrealEngine
-```
-
-
 ### Build Scripts
+
+Calling engine build with the build accelerator disabled:
+```
+Engine/Build/BatchFiles/RunUBT.sh -NoUBTBuildAccelerator EpicWebHelper Linux Shipping
+
+Engine/Build/BatchFiles/RunUBT.sh -NoUBTBuildAccelerator UnrealEditor Linux Development
+
+
+```
 
 #### First make it Executable:
 ```bash
@@ -187,7 +189,7 @@ sudo chmod +x Scripts/copy_project_files.sh
 ./Scripts/build.sh full
 
 # Clean build
-./Scripts/clean_build.sh
+./Scripts/clear_build.sh
 ```
 
 | Mode         | Description                     | Cook | Build | Pak | Archive         |
@@ -306,7 +308,7 @@ docker-compose up --build
   ### Troubleshooting
 
 
-- #### Build Error
+- #### Compile Error
   e.g.
   ```
   Compile Module.GeometryCollectionEngine.2.cpp
@@ -323,15 +325,48 @@ docker-compose up --build
     
     ```bash
 
-    cd ~/Downloads
-    wget https://github.com/ispc/ispc/releases/download/v1.23.0/ispc-v1.23.0-linux.tar.gz
+# Go to Downloads
+cd ~/Downloads
 
-    tar -xvzf ispc-v1.23.0-linux.tar.gz
-    cd ispc-v1.23.0-linux
+# Download ISPC 1.21.0 (LLVM 15.x – works with UE5.6)
+wget https://github.com/ispc/ispc/releases/download/v1.21.0/ispc-v1.21.0-linux.tar.gz
 
-    sudo cp bin/ispc /usr/local/bin/
+# Extract
+tar -xvzf ispc-v1.21.0-linux.tar.gz
+cd ispc-v1.21.0-linux
 
-    ispc --version
+# Install binary into /usr/local/bin (global path)
+sudo cp bin/ispc /usr/local/bin/
+
+# Verify version
+ispc --version
+
+# Alternative (project-local install)
+
+mkdir -p ~/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Binaries/ThirdParty/Linux/ISPC
+cp bin/ispc ~/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Binaries/ThirdParty/Linux/ISPC/
+
+# Update PATH (optional but recommended)
+
+echo 'export PATH=$HOME/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Binaries/ThirdParty/Linux/ISPC:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
 
     ```
 
+
+You need to add the additional libraries to your build environment
+
+```
+sudo apt-get update && sudo apt-get install -y \
+    libglib2.0-0 \
+    libsm6 \
+    libice6 \
+    libxcomposite1 \
+    libxrender1 \
+    libfontconfig1 \
+    libxss1 \
+    libxtst6 \
+    libxi6
+
+```
