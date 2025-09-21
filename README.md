@@ -275,56 +275,257 @@ The system automatically generates:
 
 ## Troubleshooting
 
-### Common Build Issues
+### ISPC (Intel Implicit SPMD Program Compiler) Issues
 
-#### Missing ISPC Headers
+**The most common build issue in UE 5.5+ is ISPC-related errors. Here are the solutions:**
+
+#### Method 1: Disable ISPC in Build Configuration (Recommended)
+For persistent ISPC errors during engine builds, disable ISPC compilation by editing the build configuration file:
+
 ```bash
-# Error: 'GeometryCollectionSceneProxy.ispc.generated.h' file not found
-# Solution: Install ISPC (see Step 3 above)
+# Edit the Linux build configuration
+nano ~/UnrealProjects/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Platform/Linux/UEBuildLinux.cs
+
+# Around line 273, change:
+Target.bCompileISPC = true;
+# to:
+Target.bCompileISPC = false;
 ```
 
-#### Missing Dependencies
+#### Method 2: Install Compatible ISPC Version
 ```bash
-sudo apt-get install -y \
-    libglib2.0-0 libsm6 libice6 libxcomposite1 \
-    libxrender1 libfontconfig1 libxss1 libxtst6 libxi6
+# Download ISPC 1.21.0 (LLVM 15.x compatible with UE 5.6)
+cd ~/Downloads
+wget https://github.com/ispc/ispc/releases/download/v1.21.0/ispc-v1.21.0-linux.tar.gz
+tar -xvzf ispc-v1.21.0-linux.tar.gz
+cd ispc-v1.21.0-linux
+
+# Install globally
+sudo cp bin/ispc /usr/local/bin/
+chmod +x /usr/local/bin/ispc
+
+# Verify installation
+ispc --version
 ```
 
-#### Build Cache Issues
+#### Method 3: Environment Variable Override
 ```bash
-# Clean everything and rebuild
-cd ~/UnrealProjects/YourProjectName
-rm -rf Binaries/ Intermediate/ DerivedDataCache/ Saved/
-./Scripts/clean_build.sh
-docker-compose down
-docker-compose up --build
-```
-
-#### ISPC Build Problems
-```bash
-# Disable ISPC if causing issues
+# Disable ISPC via environment variable
 export UE_BUILD_DISABLE_ISPC=1
 ./Scripts/build.sh full
 ```
 
-### Container Issues
+### Docker Memory and Storage Issues
+
+#### Container Memory Exhaustion
+Docker containers don't enforce memory limits by default, which can cause them to consume all available system memory. Add memory limits to your `docker-compose.yml`:
+
+```yaml
+services:
+  ue-game-server:
+    # ... other configuration
+    mem_limit: 8g  # Adjust based on your system
+    memswap_limit: 8g
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+```
+
+#### Zen Server Storage Issues
+For "insufficient storage" errors from Zen server, modify the cache location:
+
+```bash
+# Edit BaseEngine.ini in your Unreal Engine installation
+nano ~/UnrealProjects/UnrealEngine/Engine/Config/BaseEngine.ini
+
+# Find [Zen.AutoLaunch] section and change:
+DataPath=%ENGINEVERSIONAGNOSTICINSTALLEDUSERDIR%Zen/Data
+# to:
+DataPath=%GAMEDIR%/Saved/ZenCache
+```
+
+#### Docker Desktop Storage Limits
+Increase Docker's maximum container disk size to accommodate large Unreal Engine builds:
+
+```json
+// Edit Docker daemon.json (usually in ~/.docker/daemon.json)
+{
+  "storage-opts": [
+    "size=300G"
+  ]
+}
+```
+
+### Common Build Issues
+
+#### Missing Dependencies
+```bash
+sudo apt-get update && sudo apt-get install -y \
+    libglib2.0-0 libsm6 libice6 libxcomposite1 \
+    libxrender1 libfontconfig1 libxss1 libxtst6 libxi6 \
+    libncurses5 libssl-dev libx11-dev libxcursor-dev \
+    libxinerama-dev libxrandr-dev libxi-dev \
+    libglib2.0-dev libpulse-dev libsdl2-dev
+```
+
+#### UE4Server Target Not Found
+If you get "Couldn't find target rules file for target 'UE4Server'" error, ensure your server target file exists:
+
+```bash
+# Generate server target if missing
+./Scripts/gen_server_target.sh
+
+# Verify the server target file exists
+ls -la Source/YourProjectNameServer.Target.cs
+```
+
+#### Vulkan/Graphics Driver Issues
+For VulkanRHI crashes in containers, use software rendering:
+
+```bash
+# Add to your GameServer.sh or container startup
+-opengl  # Force OpenGL instead of Vulkan
+-nullrhi # Use null rendering (no graphics output)
+```
+
+### Build Cache Issues
+
+#### Complete Clean Build
+```bash
+# Clean everything and rebuild
+cd ~/UnrealProjects/YourProjectName
+rm -rf Binaries/ Intermediate/ DerivedDataCache/ Saved/
+
+# Clean Unreal Engine build cache
+cd ~/UnrealProjects/UnrealEngine
+rm -rf Engine/Intermediate Engine/Binaries/Linux
+
+# Rebuild from scratch
+./Scripts/clean_build.sh
+docker-compose down -v
+docker-compose up --build
+```
+
+#### Incremental Build Issues
+```bash
+# For faster incremental builds, only clean project-specific files
+rm -rf Binaries/ Intermediate/
+# Keep DerivedDataCache/ and Saved/ for faster subsequent builds
+```
+
+### Container Runtime Issues
 
 #### Server Not Starting
 ```bash
-# Check logs
-docker-compose logs ue-game-server
+# Check detailed logs
+docker-compose logs -f ue-game-server
 
-# Check if binary exists
+# Check if binary exists and is executable
 docker-compose exec ue-game-server ls -la ./LinuxServer/
+docker-compose exec ue-game-server file ./LinuxServer/YourProject/Binaries/Linux/YourProjectServer-Linux-Shipping
+
+# Test binary dependencies
+docker-compose exec ue-game-server ldd ./LinuxServer/YourProject/Binaries/Linux/YourProjectServer-Linux-Shipping
 ```
 
-#### Database Connection Issues
+#### Permission Issues
 ```bash
-# Restart database service
-docker-compose restart ue-database
+# Fix ownership issues
+sudo chown -R 1000:1000 UnrealProjects/
+sudo chown -R 1000:1000 logs/
 
+# Ensure scripts are executable
+chmod +x Scripts/*.sh
+chmod +x GameServer.sh
+```
+
+#### Network/Port Issues
+```bash
+# Check if ports are accessible
+docker-compose exec ue-game-server netstat -tulpn
+docker-compose exec ue-game-server nc -z -u 127.0.0.1 7777
+
+# Test from host
+nc -z -u localhost 7777
+```
+
+### Database Issues
+
+#### Connection Problems
+```bash
 # Check database health
 docker-compose exec ue-database pg_isready -U admin -d uegame
+
+# View database logs
+docker-compose logs ue-database
+
+# Connect manually to test
+docker-compose exec ue-database psql -U admin -d uegame
+```
+
+#### Django Migration Issues
+```bash
+# Reset Django database
+docker-compose exec ue-django-backend python manage.py migrate --fake-initial
+docker-compose exec ue-django-backend python manage.py migrate
+```
+
+### Performance Optimization
+
+#### WSL2 Memory Management
+If using WSL2, create `~/.wslconfig` to limit resource usage:
+
+```ini
+[wsl2]
+memory=8GB
+processors=4
+```
+
+#### Build Performance
+```bash
+# Use multiple cores for faster builds
+export MAKEFLAGS="-j$(nproc)"
+
+# Reduce memory usage during builds
+export UBT_PARALLEL_EXECUTOR=false
+```
+
+### Debugging Tips
+
+#### Enable Debug Mode
+```bash
+# Set debug environment variables
+UE_DEBUG=1
+UE_LOGGING=1
+BUILD_CONFIG=Development
+
+# Run with GDB for crash analysis
+docker-compose exec ue-game-server gdb ./LinuxServer/YourProject/Binaries/Linux/YourProjectServer-Linux-Development
+```
+
+#### Monitor Resource Usage
+```bash
+# Monitor container resources
+docker stats
+
+# Check disk usage
+docker system df
+docker system prune -a  # Clean unused resources
+```
+
+#### Binary Analysis
+```bash
+# Check binary dependencies
+ldd ./LinuxServer/YourProject/Binaries/Linux/YourProjectServer-Linux-Shipping
+
+# Verify binary architecture
+file ./LinuxServer/YourProject/Binaries/Linux/YourProjectServer-Linux-Shipping
+
+# Check for symbols
+nm ./LinuxServer/YourProject/Binaries/Linux/YourProjectServer-Linux-Shipping | head
 ```
 
 ### Performance Optimization
