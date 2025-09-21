@@ -2,218 +2,193 @@
 
 **Author:** [Moritz Petzka](https://github.com/jodermo) • [petzka.com](https://petzka.com) • [info@petzka.com](mailto:info@petzka.com)
 
-#### Unreal Engine dedicated Linux server as Docker container with included Django backend and database for admin tools and dynamic REST-API
+A complete solution for running an Unreal Engine dedicated Linux server as a Docker container with included Django backend and PostgreSQL database for admin tools and dynamic REST API.
 
-### Features
+## Features
 
 - Headless Unreal Engine dedicated server
 - Docker and Docker Compose support
-- Persistent volume for saved data/logs
-- Configurable map, port, and logging
+- Persistent volumes for saved data/logs
+- Configurable map, port, and logging settings
+- PostgreSQL database with Django REST API
+- Admin interface for server management
 - Minimal base image (Ubuntu 22.04)
+- Automated build scripts for different scenarios
 
-### Prerequisites
+## Prerequisites
 
 - Docker and Docker Compose
-- Access to Unreal Engine GitHub repository
+- Access to [Unreal Engine GitHub repository](https://www.unrealengine.com/en-US/ue-on-github)
 - Linux or WSL with required build tools
+- Unreal Engine 5.6+ (recommended)
 
+## Project Structure
 
+```
+~/UnrealEngineGameServer/          # This repository
+├── .env                           # Environment configuration
+├── docker-compose.yml             # Service orchestration
+├── Dockerfile                     # Server container image
+├── GameServer.sh                  # Server startup script
+├── README.md                      # This file
+├── DjangoBackend/                 # Django REST API
+│   ├── Dockerfile
+│   ├── entrypoint.sh
+│   └── config/
+├── Scripts/                       # Build automation
+│   ├── build.sh
+│   ├── clean_build.sh
+│   ├── gen_server_target.sh
+│   └── copy_project_files.sh
+├── UnrealProjects/                # Source code and builds
+│   ├── UnrealEngine/              # Engine source
+│   └── YourProjectName/           # Your game project
+│       ├── Build/LinuxServer/     # Packaged server build
+│       ├── Binaries/
+│       ├── Content/
+│       ├── Config/
+│       ├── Source/
+│       └── YourProjectName.uproject
+├── logs/                          # Runtime logs
+│   ├── server/
+│   ├── crashes/
+│   └── abs/
+└── backups/                       # Database backups
+```
 
-### .env Example
+## Quick Start
+
+### 1. Environment Configuration
+
+Create a `.env` file in the project root:
 
 ```env
-# Unreal server
-PROJECT_NAME=YourProjectName
+# Unreal Server Settings
+PROJECT_NAME=EvolutionGame
 UE_PORT=7777
-UE_MAP=LobbyMap
+UE_QUERY_PORT=27015
+UE_MAP=/Game/EvolutionGame/Levels/LobbyMap
+UE_DEBUG=1
 UE_LOGGING=1
 
-# Database settings
+# Database Configuration
 DB_NAME=uegame
 DB_USER=admin
 DB_PASSWORD=securepassword
 
-# Optional: superuser for Django admin
+# Django Admin (Optional)
 CREATE_SUPERUSER=1
 DJANGO_SUPERUSER_USERNAME=admin
 DJANGO_SUPERUSER_EMAIL=admin@example.com
 DJANGO_SUPERUSER_PASSWORD=admin123
 
-
-# UnrealEngine Build
+# Build Configuration
 UNREAL_VERSION=5_6
 BUILD_CONFIG=Shipping
-PROJECT_DIR=UnrealProjects/YourProjectName
-ARCHIVE_DIR=Packaged/YourProjectName
 UNREAL_ENGINE_PATH=UnrealProjects/UnrealEngine
+PROJECT_DIR=UnrealProjects/EvolutionGame
+BINARIES_DIR=UnrealProjects/EvolutionGame/Binaries
+BUILD_DIR=UnrealProjects/EvolutionGame/Build
+
+# Build Optimization
+UBT_NO_UBT_BUILD_ACCELERATOR=1
+UE_BUILD_DISABLE_ISPC=1
 ```
 
-## Getting Started
-
-### 1. Package the Server
-
-Use Unreal Editor or automation tools to package your project as a **Linux dedicated server**, then place the output in the `GameServer/` folder.
-
-### 2. Build the Docker Image
+### 2. Build and Run
 
 ```bash
+# Build the containers
 docker-compose build
-```
 
-### 3. Run the Server
-
-```bash
+# Start all services
 docker-compose up -d
-```
-This will expose the server on port 7777 (UDP) and 15000 (TCP by default).
 
-## Cleanup
-
-```bash
-docker-compose down
+# View logs
+docker-compose logs -f
 ```
 
-To remove containers, networks, and volumes (careful with Saved/ data):
+### 3. Access Services
 
-```bash
-docker-compose down -v
-```
+- **Game Server**: UDP port 7777 (configurable)
+- **Django Admin**: http://localhost:8000/admin
+- **REST API**: http://localhost:8000/api/
+- **PostgreSQL**: localhost:5432
 
+## Complete Setup Guide
 
-
-<br>
-
-## Guide To Package Your Unreal Engine Project For Linux Server
-
-File structure overview:
-
-```bash
-~/UnrealEngineGameServer/   # This respoitory
-├── Saved/
-├── logs/
-├── UnrealProjects/         # Contains source code for project build
-│   ├── UnrealEngine/                  
-│   │   └── ...                      
-│   ├── YourProjectName/                
-│   │   ├── Binaries/
-│   │   ├── Content/
-│   │   ├── Config/
-│   │   ├── Source/
-│   │   └── YourProjectName.uproject
-
-```
-
-### 1. Install Prerequisites
-
-#### In Linux (or use [subsystem on windows](https://learn.microsoft.com/en-us/windows/wsl/install)), run:
+### Step 1: Install Prerequisites (Linux/WSL)
 
 ```bash
 sudo apt update
-sudo apt install clang lld cmake make git build-essential libncurses5 libssl-dev libx11-dev \
-    libxcursor-dev libxinerama-dev libxrandr-dev libxi-dev libglib2.0-dev libpulse-dev \
-    libsdl2-dev mono-devel dos2unix unzip
+sudo apt install -y \
+    clang lld cmake make git build-essential \
+    libncurses5 libssl-dev libx11-dev libxcursor-dev \
+    libxinerama-dev libxrandr-dev libxi-dev \
+    libglib2.0-dev libpulse-dev libsdl2-dev \
+    mono-devel dos2unix unzip wget
 ```
 
-### 2. Install UnrealEngine*
+### Step 2: Install Unreal Engine
 
-****([GitHub access to offical UnrealEngine repository](https://www.unrealengine.com/en-US/ue-on-github) needed )***
+**Note**: Requires [GitHub access to Epic Games repository](https://www.unrealengine.com/en-US/ue-on-github)
 
 ```bash
+# Create project directory
 mkdir -p ~/UnrealProjects
 cd ~/UnrealProjects
-```
 
-- Option A: Clone UnrealEngine via SSH
-    ```bash
-    git clone --depth=1 -b 5.6 git@github.com:EpicGames/UnrealEngine.git
-    ```
+# Clone Unreal Engine (choose one method)
+# Method A: SSH
+git clone --depth=1 -b 5.6 git@github.com:EpicGames/UnrealEngine.git
 
-- Option B: Clone UnrealEngine via HTTP
-    ```bash
-    git clone --depth=1 -b 5.6 https://github.com/EpicGames/UnrealEngine.git
-    ```
+# Method B: HTTPS
+git clone --depth=1 -b 5.6 https://github.com/EpicGames/UnrealEngine.git
 
-### 3. Run Setup & Generate Project Files
-
-```bash
-cd ~/UnrealProjects/UnrealEngine
+# Build Unreal Engine (this takes a long time!)
+cd UnrealEngine
 ./Setup.sh
 ./GenerateProjectFiles.sh
 make
 ```
-This builds the Unreal Engine Linux version in WSL. It will take a long time.
 
-### 4. Build Your Game's Linux Server
+### Step 3: Install ISPC (Required for UE 5.6)
 
 ```bash
+# Download and install ISPC
+cd ~/Downloads
+wget https://github.com/ispc/ispc/releases/download/v1.21.0/ispc-v1.21.0-linux.tar.gz
+tar -xvzf ispc-v1.21.0-linux.tar.gz
+cd ispc-v1.21.0-linux
+
+# Install globally
+sudo cp bin/ispc /usr/local/bin/
+chmod +x /usr/local/bin/ispc
+
+# Verify installation
+ispc --version
+```
+
+### Step 4: Prepare Your Game Project
+
+```bash
+# Copy your project to the UnrealProjects directory
 mkdir -p ~/UnrealProjects/YourProjectName
-```
-Copy your Windows project into this directory or clone from a repo
+# Copy your Windows project files here or clone from repository
 
-### Build Scripts
-
-Calling engine build with the build accelerator disabled:
-```
-Engine/Build/BatchFiles/RunUBT.sh -NoUBTBuildAccelerator EpicWebHelper Linux Shipping
-
-Engine/Build/BatchFiles/RunUBT.sh -NoUBTBuildAccelerator UnrealEditor Linux Development
-
-
+# Make build scripts executable
+chmod +x Scripts/*.sh
 ```
 
-#### First make it Executable:
-```bash
-sudo chmod +x Scripts/build.sh
-sudo chmod +x Scripts/clean_build.sh
-sudo chmod +x Scripts/gen_server_target.sh
-sudo chmod +x Scripts/copy_project_files.sh
-
-```
-
-####  Example Usage:
-```bash
-# Rebuild C++ code only (fast)
-./Scripts/build.sh code
-
-# Only blueprint changes
-./Scripts/build.sh blueprints
-
-# Full cook for content changes (no code changes)
-./Scripts/build.sh content
-
-# Build server binaries
-./Scripts/build.sh server
-
-# Full package (default)
-./Scripts/build.sh full
-
-# Clean build
-./Scripts/clear_build.sh
-```
-
-| Mode         | Description                     | Cook | Build | Pak | Archive         |
-| ------------ | ------------------------------- | ---- | ----- | --- | --------------- |
-| `code`       | C++ only, no cook/pak/archive   | ❌    | ✅     | ❌   | ❌               |
-| `blueprints` | Blueprint change only           | ✅    | ❌     | ✅   | ❌               |
-| `content`    | Content-only changes            | ✅    | ❌     | ✅   | ❌               |
-| `server`     | Server binaries only (new mode) | ❌    | ✅     | ❌   | ❌ (manual copy) |
-| `full`       | Full cook + pak + archive       | ✅    | ✅     | ✅   | ✅               |
-
-
-YourProjectNameServer is auto-generated when you enable Dedicated Server support.
-
-Ensure you have `bUsesSteam=false` (if you're not configuring Steam) in DefaultEngine.ini under OnlineSubsystem.
-
-### 5. Enable Server Target (if not done)
+### Step 5: Generate Server Target (If Not Exists)
 
 ```bash
 ./Scripts/gen_server_target.sh
 ```
 
-This creates a file like:
-```bash
-// YourProjectNameServer.Target.cs
+This creates `YourProjectNameServer.Target.cs`:
+
+```csharp
 using UnrealBuildTool;
 using System.Collections.Generic;
 
@@ -229,144 +204,199 @@ public class YourProjectNameServerTarget : TargetRules
 }
 ```
 
-## Clean Unreal Build Cache 
+## Build Scripts Usage
 
-Run the following in your project folder, e.g.:
-```bash
-cd ~/UnrealProjects/YourProjectName
-```
-
-Then delete the following folders:
-```bash
-rm -rf Binaries/ Intermediate/ DerivedDataCache/ Saved/
-```
-#### Optional: Force Regenerate Project Files (if needed)
-```bash
-~/UnrealProjects/UnrealEngine/Engine/Build/BatchFiles/Linux/GenerateProjectFiles.sh \
-  -project="$(pwd)/YourProjectName.uproject" -game
-```
-
-#### Rebuild the Project
-
-Clean Build Cache (Optional if Build Breaks or Conflicts)
+The included build scripts provide different build modes for various scenarios:
 
 ```bash
-cd ~/UnrealProjects/YourProjectName
+# Rebuild C++ code only (fastest)
+./Scripts/build.sh code
 
-# Remove cached build files
-rm -rf Binaries/ Intermediate/ DerivedDataCache/ Saved/
+# Blueprint changes only
+./Scripts/build.sh blueprints
 
-# Optional: Clean Unreal's build state
-./UnrealProjects/UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool.exe -Clean
+# Content-only changes (textures, meshes, etc.)
+./Scripts/build.sh content
 
-docker-compose down
-docker-compose up --build
+# Server binaries only
+./Scripts/build.sh server
+
+# Full package (default - everything)
+./Scripts/build.sh full
+
+# Clean build (removes all cached files)
+./Scripts/clean_build.sh
 ```
 
-If you're just rebuilding code and not changing content:
+### Build Modes Comparison
 
-```bash
-./UnrealProjects/UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool.exe -Clean
-rm -rf Saved Intermediate DerivedDataCache
+| Mode         | Description                   | Cook | Build | Pak | Archive | Speed    |
+|--------------|-------------------------------|------|-------|-----|---------|----------|
+| `code`       | C++ only, no content changes | -    | X     | -   | -       | Fastest  |
+| `blueprints` | Blueprint changes only        | X    | -     | X   | -       | Fast     |
+| `content`    | Content-only changes          | X    | -     | X   | -       | Medium   |
+| `server`     | Server binaries only          | -    | X     | -   | -       | Fast     |
+| `full`       | Complete cook + pak + archive | X    | X     | X   | X       | Slowest  |
 
+## Django Backend Configuration
 
-docker-compose down
-docker-compose up --build
-```
-<br>
+The Django backend provides a REST API for game data management and admin interface.
 
-## Dynamic Backend-API URLs, Views And Database Generation
+### Dynamic Entity Generation
 
-#### Ecample `entities.json`
+Configure your game entities in `DjangoBackend/config/entities.json`:
 
-(DjangoBackend/config/[entities.json](config/entities.json))
-
-  ```bash
+```json
 {
     "Player": {
-      "fields": {
-        "username": "CharField(max_length=50, unique=True)",
-        "email": "EmailField()",
-        "score": "IntegerField(default=0)",
-        "is_active": "BooleanField(default=True)"
-      }
+        "fields": {
+            "username": "CharField(max_length=50, unique=True)",
+            "email": "EmailField()",
+            "score": "IntegerField(default=0)",
+            "is_active": "BooleanField(default=True)"
+        }
     },
     "Match": {
-      "fields": {
-        "match_id": "CharField(max_length=32, unique=True)",
-        "start_time": "DateTimeField()",
-        "end_time": "DateTimeField(null=True, blank=True)",
-        "winner": "ForeignKey('Player', on_delete=models.DO_NOTHING, null=True)"
-      }
-    },
-    ... add more fields if needed
+        "fields": {
+            "match_id": "CharField(max_length=32, unique=True)",
+            "start_time": "DateTimeField()",
+            "end_time": "DateTimeField(null=True, blank=True)",
+            "winner": "ForeignKey('Player', on_delete=models.DO_NOTHING, null=True)"
+        }
+    }
 }
-  ```
-
-<br>
-
-  ### Troubleshooting
-
-
-- #### Compile Error
-  e.g.
-  ```
-  Compile Module.GeometryCollectionEngine.2.cpp
-  In file included from /home/<username>/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Intermediate/Build/Linux/x64/UnrealEditor/Development/GeometryCollectionEngine/Module.GeometryCollectionEngine.2.cpp:19:
-  /home/jodermo/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Source/Runtime/Experimental/GeometryCollectionEngine/Private/GeometryCollection/GeometryCollectionSceneProxy.cpp:43:10: fatal error: 'GeometryCollectionSceneProxy.ispc.generated.h' file not found
-    43 | #include "GeometryCollectionSceneProxy.ispc.generated.h"
-        |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  1 error generated.
-
-  ```
-  
-  #### Solution: 
-    Install ispc
-    
-    ```bash
-
-# Go to Downloads
-cd ~/Downloads
-
-# Download ISPC 1.21.0 (LLVM 15.x – works with UE5.6)
-wget https://github.com/ispc/ispc/releases/download/v1.21.0/ispc-v1.21.0-linux.tar.gz
-
-# Extract
-tar -xvzf ispc-v1.21.0-linux.tar.gz
-cd ispc-v1.21.0-linux
-
-# Install binary into /usr/local/bin (global path)
-sudo cp bin/ispc /usr/local/bin/
-
-# Verify version
-ispc --version
-
-# Alternative (project-local install)
-
-mkdir -p ~/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Binaries/ThirdParty/Linux/ISPC
-cp bin/ispc ~/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Binaries/ThirdParty/Linux/ISPC/
-
-# Update PATH (optional but recommended)
-
-echo 'export PATH=$HOME/UnrealEngineGameServer/UnrealProjects/UnrealEngine/Engine/Binaries/ThirdParty/Linux/ISPC:$PATH' >> ~/.bashrc
-source ~/.bashrc
-
-
-    ```
-
-
-You need to add the additional libraries to your build environment
-
 ```
-sudo apt-get update && sudo apt-get install -y \
-    libglib2.0-0 \
-    libsm6 \
-    libice6 \
-    libxcomposite1 \
-    libxrender1 \
-    libfontconfig1 \
-    libxss1 \
-    libxtst6 \
-    libxi6
 
+The system automatically generates:
+- Django models
+- REST API endpoints
+- Admin interface
+- Database migrations
+
+## Troubleshooting
+
+### Common Build Issues
+
+#### Missing ISPC Headers
+```bash
+# Error: 'GeometryCollectionSceneProxy.ispc.generated.h' file not found
+# Solution: Install ISPC (see Step 3 above)
 ```
+
+#### Missing Dependencies
+```bash
+sudo apt-get install -y \
+    libglib2.0-0 libsm6 libice6 libxcomposite1 \
+    libxrender1 libfontconfig1 libxss1 libxtst6 libxi6
+```
+
+#### Build Cache Issues
+```bash
+# Clean everything and rebuild
+cd ~/UnrealProjects/YourProjectName
+rm -rf Binaries/ Intermediate/ DerivedDataCache/ Saved/
+./Scripts/clean_build.sh
+docker-compose down
+docker-compose up --build
+```
+
+#### ISPC Build Problems
+```bash
+# Disable ISPC if causing issues
+export UE_BUILD_DISABLE_ISPC=1
+./Scripts/build.sh full
+```
+
+### Container Issues
+
+#### Server Not Starting
+```bash
+# Check logs
+docker-compose logs ue-game-server
+
+# Check if binary exists
+docker-compose exec ue-game-server ls -la ./LinuxServer/
+```
+
+#### Database Connection Issues
+```bash
+# Restart database service
+docker-compose restart ue-database
+
+# Check database health
+docker-compose exec ue-database pg_isready -U admin -d uegame
+```
+
+### Performance Optimization
+
+#### For Development
+```bash
+# Use development build for faster iteration
+BUILD_CONFIG=Development docker-compose up --build
+```
+
+#### For Production
+```bash
+# Use shipping build for optimal performance
+BUILD_CONFIG=Shipping docker-compose up --build
+```
+
+## Maintenance Commands
+
+```bash
+# View real-time logs
+docker-compose logs -f
+
+# Restart specific service
+docker-compose restart ue-game-server
+
+# Update containers
+docker-compose pull
+docker-compose up -d
+
+# Backup database
+docker-compose exec ue-database pg_dump -U admin uegame > backup.sql
+
+# Clean up unused containers/images
+docker system prune -a
+```
+
+## Advanced Configuration
+
+### Custom Game Maps
+Update `.env` to change the default map:
+```env
+UE_MAP=/Game/YourProject/Levels/YourMap
+```
+
+### Port Configuration
+```env
+UE_PORT=7777          # Game port
+UE_QUERY_PORT=27015   # Query port
+```
+
+### Logging Configuration
+```env
+UE_LOGGING=1          # Enable file logging
+UE_DEBUG=1            # Enable debug mode with GDB
+```
+
+## Security Considerations
+
+- Change default database passwords in production
+- Use environment-specific `.env` files
+- Consider firewall rules for exposed ports
+- Regularly update base images and dependencies
+- Monitor logs for suspicious activity
+
+## Support
+
+For issues and questions:
+- Check the troubleshooting section above
+- Review Docker and Unreal Engine logs
+- Ensure all prerequisites are installed
+- Verify your Unreal Engine GitHub access
+
+## License
+
+This project is provided as-is for educational and development purposes. Unreal Engine usage is subject to Epic Games' licensing terms.
