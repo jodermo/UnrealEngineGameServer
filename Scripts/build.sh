@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+
 # -----------------------------
 # Timestamped logging helper
 # -----------------------------
@@ -10,16 +11,28 @@ log() {
   echo "[$level $(date +'%H:%M:%S')] $*"
 }
 
+ROOT_DIR="$(pwd)"
+log INFO "ROOT_DIR=$ROOT_DIR"
+
+
 # -----------------------------
 # Load .env
 # -----------------------------
 ENV_FILE="$(dirname "$0")/../.env"
 if [ -f "$ENV_FILE" ]; then
-    export $(grep -v '^#' "$ENV_FILE" | sed 's/\r$//' | xargs)
+    set -a
+    # ignore comments and empty lines, require KEY=VALUE format
+    source <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$ENV_FILE" | sed 's/\r$//')
+
+    set +a
 else
     log ERROR "Missing .env file at $ENV_FILE"
     exit 1
 fi
+
+log INFO "Loaded .env from $ENV_FILE"
+log INFO "UNREAL_ENGINE_PATH=$UNREAL_ENGINE_PATH"
+
 
 # -----------------------------
 # Parse args
@@ -58,7 +71,12 @@ ROOT_DIR="$(pwd)"
 UPROJECT="$ROOT_DIR/$PROJECT_DIR/$PROJECT_NAME.uproject"
 UAT_SCRIPT="$ROOT_DIR/$UNREAL_ENGINE_PATH/Engine/Build/BatchFiles/RunUAT.sh"
 UBT_SCRIPT="$ROOT_DIR/$UNREAL_ENGINE_PATH/Engine/Build/BatchFiles/Linux/Build.sh"
+
 BUILD_TRACK_FILE="$ROOT_DIR/.last_build_${MODE}"
+
+log INFO "UBT_SCRIPT='$UBT_SCRIPT'"
+ls -l "$UBT_SCRIPT" || log ERROR "File not found: $UBT_SCRIPT"
+
 
 # -----------------------------
 # ShaderCompileWorker check

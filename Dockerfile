@@ -5,12 +5,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 ARG PROJECT_NAME=EvolutionGame
 ARG BUILD_CONFIG=Shipping
-ARG INSTALL_DEBUG_TOOLS=false   # set to true for debug builds
+ARG INSTALL_DEBUG_TOOLS=false
+ARG USER_ID=1000
+ARG GROUP_ID=1000
 
-# Create non-root user
-RUN useradd -ms /bin/bash ue-server
+# Create non-root user with matching host UID/GID
+RUN groupadd -g $GROUP_ID ue-server && \
+    useradd -u $USER_ID -g $GROUP_ID -ms /bin/bash ue-server
 
-# Install runtime deps
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     binutils \
     libicu70 \
@@ -51,33 +54,39 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
  && rm -rf /var/lib/apt/lists/*
 
-
-# Optionally install debug tools (use --build-arg INSTALL_DEBUG_TOOLS=true)
+# Optionally install debug tools
 RUN if [ "$INSTALL_DEBUG_TOOLS" = "true" ]; then \
       apt-get update && apt-get install -y --no-install-recommends \
       gdb strace file less vim && \
       rm -rf /var/lib/apt/lists/*; \
     fi
 
-# Working directory points to packaged build root
+# Set working directory
 WORKDIR /home/ue-server/${PROJECT_NAME}Server
 
-# Copy entire packaged dedicated server (LinuxServer folder)
-COPY UnrealProjects/${PROJECT_NAME}/Build/LinuxServer/ ./
+# Validate build artifacts exist before copying
+RUN echo "Validating build context..."
+COPY UnrealProjects/${PROJECT_NAME}/Build/LinuxServer ./LinuxServer
 
 # Copy launch script
-COPY GameServer.sh GameServer.sh
-RUN chmod +x GameServer.sh
+COPY GameServer.sh ./GameServer.sh
+RUN chmod +x ./GameServer.sh
 
-# Permissions
+# Set proper ownership
 RUN chown -R ue-server:ue-server /home/ue-server/${PROJECT_NAME}Server
 
+# Switch to non-root user
 USER ue-server
 
+# Create logs directory
+RUN mkdir -p /home/ue-server/logs
+
+# Expose ports
 EXPOSE 7777/udp
 EXPOSE 27015/udp
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD nc -z -u 127.0.0.1 27015 || exit 1
+# Health check - test actual game port with longer startup time
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD nc -z -u 127.0.0.1 7777 || exit 1
 
 ENTRYPOINT ["./GameServer.sh"]
