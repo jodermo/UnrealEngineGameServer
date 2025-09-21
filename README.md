@@ -45,13 +45,13 @@ UnrealEngineGameServer/            # This repository
         startup.sh                 # Startup script
     UnrealProjects/                # Source code and builds
         UnrealEngine/              # Engine source code
-        <YourProjectName>/             # Your game project
+        <ProjectName>/             # Your game project
             Binaries/              # Compiled binaries
             Build/                 # Build output directory
             Config/                # Project configuration
             Content/               # Game content assets
             Source/                # C++ source code
-            <YourProjectName>.uproject # Project file
+            <ProjectName>.uproject # Project file
     logs/                          # Runtime and build logs
         abs/                       # Absolute logs
         crashes/                   # Crash reports
@@ -69,10 +69,10 @@ Create a `.env` file in the project root:
 
 ```env
 # Unreal Server Settings
-PROJECT_NAME=<YourProjectName>
+PROJECT_NAME=<ProjectName>
 UE_PORT=7777
 UE_QUERY_PORT=27015
-UE_MAP=/Game/<YourProjectName>/Maps/StartMap
+UE_MAP=/Game/<ProjectName>/Maps/StartMap
 UE_DEBUG=1
 UE_LOGGING=1
 
@@ -91,9 +91,9 @@ DJANGO_SUPERUSER_PASSWORD=secureadminpassword
 UNREAL_VERSION=5_6
 BUILD_CONFIG=Shipping
 UNREAL_ENGINE_PATH=UnrealProjects/UnrealEngine
-PROJECT_DIR=UnrealProjects/<YourProjectName>
-BINARIES_DIR=UnrealProjects/<YourProjectName>/Binaries
-BUILD_DIR=UnrealProjects/<YourProjectName>/Build
+PROJECT_DIR=UnrealProjects/<ProjectName>
+BINARIES_DIR=UnrealProjects/<ProjectName>/Binaries
+BUILD_DIR=UnrealProjects/<ProjectName>/Build
 
 # Build Optimization
 UBT_NO_UBT_BUILD_ACCELERATOR=1
@@ -178,7 +178,7 @@ ispc --version
 
 ```bash
 # Copy your project to the UnrealProjects directory
-mkdir -p ~/UnrealProjects/<YourProjectName>
+mkdir -p ~/UnrealProjects/<ProjectName>
 # Copy your Windows project files here or clone from repository
 
 # Make build scripts executable
@@ -191,20 +191,20 @@ chmod +x Scripts/*.sh
 ./Scripts/gen_server_target.sh
 ```
 
-This creates `<YourProjectName>Server.Target.cs`:
+This creates `<ProjectName>Server.Target.cs`:
 
 ```csharp
 using UnrealBuildTool;
 using System.Collections.Generic;
 
-public class <YourProjectName>ServerTarget : TargetRules
+public class <ProjectName>ServerTarget : TargetRules
 {
-    public <YourProjectName>ServerTarget(TargetInfo Target) : base(Target)
+    public <ProjectName>ServerTarget(TargetInfo Target) : base(Target)
     {
         Type = TargetType.Server;
         DefaultBuildSettings = BuildSettingsVersion.V2;
         IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_6;
-        ExtraModuleNames.Add("<YourProjectName>");
+        ExtraModuleNames.Add("<ProjectName>");
     }
 }
 ```
@@ -384,7 +384,7 @@ If you get "Couldn't find target rules file for target 'UE4Server'" error, ensur
 ./Scripts/gen_server_target.sh
 
 # Verify the server target file exists
-ls -la Source/<YourProjectName>Server.Target.cs
+ls -la Source/<ProjectName>Server.Target.cs
 ```
 
 #### Vulkan/Graphics Driver Issues
@@ -401,7 +401,7 @@ For VulkanRHI crashes in containers, use software rendering:
 #### Complete Clean Build
 ```bash
 # Clean everything and rebuild
-cd ~/UnrealProjects/<YourProjectName>
+cd ~/UnrealProjects/<ProjectName>
 rm -rf Binaries/ Intermediate/ DerivedDataCache/ Saved/
 
 # Clean Unreal Engine build cache
@@ -430,10 +430,10 @@ docker-compose logs -f ue-game-server
 
 # Check if binary exists and is executable
 docker-compose exec ue-game-server ls -la ./LinuxServer/
-docker-compose exec ue-game-server file ./LinuxServer/<YourProjectName>/Binaries/Linux/<YourProjectName>Server-Linux-Shipping
+docker-compose exec ue-game-server file ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping
 
 # Test binary dependencies
-docker-compose exec ue-game-server ldd ./LinuxServer/<YourProjectName>/Binaries/Linux/<YourProjectName>Server-Linux-Shipping
+docker-compose exec ue-game-server ldd ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping
 ```
 
 #### Permission Issues
@@ -508,7 +508,7 @@ UE_LOGGING=1
 BUILD_CONFIG=Development
 
 # Run with GDB for crash analysis
-docker-compose exec ue-game-server gdb ./LinuxServer/<YourProjectName>/Binaries/Linux/<YourProjectName>Server-Linux-Development
+docker-compose exec ue-game-server gdb ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Development
 ```
 
 #### Monitor Resource Usage
@@ -524,13 +524,13 @@ docker system prune -a  # Clean unused resources
 #### Binary Analysis
 ```bash
 # Check binary dependencies
-ldd ./LinuxServer/<YourProjectName>/Binaries/Linux/<YourProjectName>Server-Linux-Shipping
+ldd ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping
 
 # Verify binary architecture
-file ./LinuxServer/<YourProjectName>/Binaries/Linux/<YourProjectName>Server-Linux-Shipping
+file ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping
 
 # Check for symbols
-nm ./LinuxServer/<YourProjectName>/Binaries/Linux/<YourProjectName>Server-Linux-Shipping | head
+nm ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping | head
 ```
 
 ### Performance Optimization
@@ -572,7 +572,7 @@ docker system prune -a
 ### Custom Game Maps
 Update `.env` to change the default map:
 ```env
-UE_MAP=/Game/<YourProjectName>/Maps/YourMap
+UE_MAP=/Game/<ProjectName>/Maps/YourMap
 ```
 
 ### Port Configuration
