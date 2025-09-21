@@ -60,18 +60,16 @@ Thumbs.db
 */**/Intermediate/
 */**/Saved/
 
-
-
 !Packaged/README.m
 .env
 *.tar.gz
+
+CookMaps.txt
 .last_build_full
+.last_build_server
 
 # Don't ignore these files
 !README.md
 !**/README.md
 
 
-CookMaps.txt
-.last_build_full
-.last_build_server

@@ -29,14 +29,9 @@ A complete solution for running an Unreal Engine dedicated Linux server as a Doc
 ```
 UnrealEngineGameServer/            # This repository
     .env                           # Environment configuration
-    .dockerignore                  # Docker ignore file
-    .gitignore                     # Git ignore file
     docker-compose.yml             # Service orchestration
     Dockerfile                     # Server container image
     GameServer.sh                  # Server startup script
-    README.md                      # This file
-    README_temp.md                 # Temporary readme
-    CookMaps.txt                   # Cooked maps configuration
     DjangoBackend/                 # Django REST API
         Dockerfile                 # Django container image
         entrypoint.sh              # Django startup script
@@ -79,7 +74,6 @@ Create a `.env` file in the project root:
 PROJECT_NAME=<ProjectName>
 UE_PORT=7777
 UE_QUERY_PORT=27015
-UE_MAP=/Game/<ProjectName>/Levels/StartMap
 UE_DEBUG=1
 UE_LOGGING=1
 
@@ -101,6 +95,8 @@ UNREAL_ENGINE_PATH=UnrealProjects/UnrealEngine
 PROJECT_DIR=UnrealProjects/<ProjectName>
 BINARIES_DIR=UnrealProjects/<ProjectName>/Binaries
 BUILD_DIR=UnrealProjects/<ProjectName>/Build
+UE_MAPS=/Game/Levels/StartMap,/Game/Levels/FirstLevel # all cooked maps
+UE_MAP=/Game/Levels/StartMap # default start map
 
 # Build Optimization
 UBT_NO_UBT_BUILD_ACCELERATOR=1
@@ -844,7 +840,7 @@ docker system prune -a
 ### Custom Game Maps
 Update `.env` to change the default map:
 ```env
-UE_MAP=/Game/<ProjectName>/Levels/YourMap
+UE_MAP=/Game/Levels/YourMap
 ```
 
 ### Port Configuration
