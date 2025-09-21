@@ -21,15 +21,22 @@ A complete solution for running an Unreal Engine dedicated Linux server as a Doc
 - Access to [Unreal Engine GitHub repository](https://www.unrealengine.com/en-US/ue-on-github)
 - Linux or WSL with required build tools
 - Unreal Engine 5.6+ (recommended)
+- Minimum 32GB RAM, 200GB+ free disk space
+- Multi-core CPU (8+ cores recommended)
 
 ## Project Structure
 
 ```
 UnrealEngineGameServer/            # This repository
     .env                           # Environment configuration
+    .dockerignore                  # Docker ignore file
+    .gitignore                     # Git ignore file
     docker-compose.yml             # Service orchestration
     Dockerfile                     # Server container image
     GameServer.sh                  # Server startup script
+    README.md                      # This file
+    README_temp.md                 # Temporary readme
+    CookMaps.txt                   # Cooked maps configuration
     DjangoBackend/                 # Django REST API
         Dockerfile                 # Django container image
         entrypoint.sh              # Django startup script
@@ -72,7 +79,7 @@ Create a `.env` file in the project root:
 PROJECT_NAME=<ProjectName>
 UE_PORT=7777
 UE_QUERY_PORT=27015
-UE_MAP=/Game/<ProjectName>/Maps/StartMap
+UE_MAP=/Game/<ProjectName>/Levels/StartMap
 UE_DEBUG=1
 UE_LOGGING=1
 
@@ -85,7 +92,7 @@ DB_PASSWORD=securepassword
 CREATE_SUPERUSER=1
 DJANGO_SUPERUSER_USERNAME=admin
 DJANGO_SUPERUSER_EMAIL=admin@example.com
-DJANGO_SUPERUSER_PASSWORD=secureadminpassword
+DJANGO_SUPERUSER_PASSWORD=admin123
 
 # Build Configuration
 UNREAL_VERSION=5_6
@@ -121,6 +128,271 @@ docker-compose logs -f
 - **PostgreSQL**: localhost:5432
 
 ## Complete Setup Guide
+
+### Step 0: Initial Linux Environment Setup
+
+Before beginning with Unreal Engine, ensure your Linux system is properly configured with all required dependencies and tools.
+
+#### System Requirements Check
+```bash
+# Check available disk space (need 200GB+ free)
+df -h
+
+# Check RAM (32GB+ recommended)
+free -h
+
+# Check CPU cores (8+ recommended)
+nproc
+
+# Check Linux distribution and version
+lsb_release -a
+```
+
+#### Update System and Install Base Dependencies
+```bash
+# Update package lists and upgrade system
+sudo apt update && sudo apt upgrade -y
+
+# Install essential development tools
+sudo apt install -y \
+    curl wget git vim nano \
+    software-properties-common \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    lsb-release
+
+# Install build essentials
+sudo apt install -y \
+    build-essential \
+    clang \
+    lld \
+    cmake \
+    make \
+    ninja-build \
+    pkg-config
+```
+
+#### Install Unreal Engine Specific Dependencies
+```bash
+# Install required libraries for UE compilation
+sudo apt install -y \
+    libncurses5-dev \
+    libssl-dev \
+    libx11-dev \
+    libxcursor-dev \
+    libxinerama-dev \
+    libxrandr-dev \
+    libxi-dev \
+    libglib2.0-dev \
+    libpulse-dev \
+    libsdl2-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libgtk-3-dev \
+    libasound2-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libvorbis-dev \
+    libogg-dev \
+    libtheora-dev \
+    libvpx-dev \
+    libxss1 \
+    libgconf-2-4
+
+# Install additional runtime libraries
+sudo apt install -y \
+    libglib2.0-0 \
+    libsm6 \
+    libice6 \
+    libxcomposite1 \
+    libxrender1 \
+    libfontconfig1 \
+    libxtst6 \
+    libxi6 \
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libasound2
+```
+
+#### Install Mono (Required for UE Build Tools)
+```bash
+# Add Mono repository
+sudo apt install -y dirmngr gnupg apt-transport-https ca-certificates
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+echo "deb https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
+
+# Update and install Mono
+sudo apt update
+sudo apt install -y mono-devel mono-complete
+
+# Verify Mono installation
+mono --version
+```
+
+#### Install Docker and Docker Compose
+```bash
+# Remove old Docker versions if they exist
+sudo apt remove -y docker docker-engine docker.io containerd runc
+
+# Add Docker's official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Add Docker repository
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Add current user to docker group (avoid using sudo with docker)
+sudo usermod -aG docker $USER
+
+# Verify Docker installation
+docker --version
+docker compose version
+
+# Test Docker (run this after logging out and back in)
+docker run hello-world
+```
+
+#### Install Additional Build Tools
+```bash
+# Install Python (needed for some UE scripts)
+sudo apt install -y python3 python3-pip python3-dev
+
+# Install Node.js (for potential web interfaces)
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install additional utilities
+sudo apt install -y \
+    dos2unix \
+    unzip \
+    p7zip-full \
+    tree \
+    htop \
+    screen \
+    tmux \
+    netcat-openbsd
+```
+
+#### Configure Git (Required for UE Repository Access)
+```bash
+# Configure Git with your credentials
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+
+# Generate SSH key for GitHub (if using SSH)
+ssh-keygen -t ed25519 -C "your.email@example.com"
+
+# Add SSH key to ssh-agent
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+
+# Display public key to add to GitHub
+cat ~/.ssh/id_ed25519.pub
+```
+
+#### Setup Epic Games GitHub Access
+Before proceeding, you must link your Epic Games account to GitHub:
+
+1. **Link Accounts**: Visit your [Epic Games account page](https://www.epicgames.com/account/connected)
+2. **Connect GitHub**: Find the "Connections" tab and link your GitHub account
+3. **Join Organization**: Check your email for an invitation to join the Epic Games GitHub organization
+4. **Accept Invitation**: Accept the invitation to gain access to the UnrealEngine repository
+
+#### Test GitHub Access
+```bash
+# Test SSH access to GitHub (if using SSH)
+ssh -T git@github.com
+
+# Test HTTPS access (if using HTTPS)
+git ls-remote https://github.com/EpicGames/UnrealEngine.git
+
+# You should see repository information if access is working
+```
+
+#### Create Project Directory Structure
+```bash
+# Create main project directory
+mkdir -p ~/UnrealEngineGameServer
+cd ~/UnrealEngineGameServer
+
+# Create subdirectories
+mkdir -p {logs/{server,crashes,abs,ue},backups,Scripts,DjangoBackend,UnrealProjects}
+
+# Set proper permissions
+chmod 755 ~/UnrealEngineGameServer
+```
+
+#### System Optimization for Large Builds
+```bash
+# Increase file descriptor limits for large builds
+echo "* soft nofile 65536" | sudo tee -a /etc/security/limits.conf
+echo "* hard nofile 65536" | sudo tee -a /etc/security/limits.conf
+
+# Increase virtual memory for linking
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+
+# Increase swap if you have less than 32GB RAM
+sudo fallocate -l 16G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# Apply sysctl changes
+sudo sysctl -p
+```
+
+#### Verify Installation
+```bash
+# Create a verification script
+cat << 'EOF' > ~/verify_setup.sh
+#!/bin/bash
+echo "=== System Verification ==="
+echo "OS: $(lsb_release -d | cut -f2)"
+echo "Kernel: $(uname -r)"
+echo "CPU Cores: $(nproc)"
+echo "RAM: $(free -h | grep Mem: | awk '{print $2}')"
+echo "Disk Space: $(df -h ~ | tail -1 | awk '{print $4}') available"
+echo ""
+echo "=== Tool Versions ==="
+echo "GCC: $(gcc --version | head -1)"
+echo "Clang: $(clang --version | head -1)"
+echo "CMake: $(cmake --version | head -1)"
+echo "Git: $(git --version)"
+echo "Docker: $(docker --version)"
+echo "Mono: $(mono --version | head -1)"
+echo ""
+echo "=== GitHub Access ==="
+if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+    echo "GitHub SSH: ✓ Working"
+else
+    echo "GitHub SSH: ✗ Not configured or not working"
+fi
+echo ""
+echo "=== Directory Structure ==="
+tree ~/UnrealEngineGameServer -L 2 2>/dev/null || ls -la ~/UnrealEngineGameServer
+EOF
+
+chmod +x ~/verify_setup.sh
+~/verify_setup.sh
+```
+
+**Important Notes:**
+- Log out and log back in after adding yourself to the docker group
+- Ensure you have accepted the Epic Games GitHub organization invitation
+- The initial Unreal Engine build will take 4-8 hours depending on your hardware
+- Monitor disk space during builds as they can consume 100GB+ temporarily
 
 ### Step 1: Install Prerequisites (Linux/WSL)
 
@@ -572,7 +844,7 @@ docker system prune -a
 ### Custom Game Maps
 Update `.env` to change the default map:
 ```env
-UE_MAP=/Game/<ProjectName>/Maps/YourMap
+UE_MAP=/Game/<ProjectName>/Levels/YourMap
 ```
 
 ### Port Configuration
