@@ -95,8 +95,8 @@ UNREAL_ENGINE_PATH=UnrealProjects/UnrealEngine
 PROJECT_DIR=UnrealProjects/<ProjectName>
 BINARIES_DIR=UnrealProjects/<ProjectName>/Binaries
 BUILD_DIR=UnrealProjects/<ProjectName>/Build
-UE_MAPS=/Game/Levels/StartMap,/Game/Levels/FirstLevel # all cooked maps
-UE_MAP=/Game/Levels/StartMap # default start map
+UE_MAPS=/Game/Maps/StartMap,/Game/Maps/FirstLevel # all cooked maps
+UE_MAP=/Game/Maps/StartMap # default start map
 
 # Build Optimization
 UBT_NO_UBT_BUILD_ACCELERATOR=1
@@ -840,7 +840,7 @@ docker system prune -a
 ### Custom Game Maps
 Update `.env` to change the default map:
 ```env
-UE_MAP=/Game/Levels/YourMap
+UE_MAP=/Game/Maps/YourMap
 ```
 
 ### Port Configuration
