@@ -25,35 +25,40 @@ A complete solution for running an Unreal Engine dedicated Linux server as a Doc
 ## Project Structure
 
 ```
-~/UnrealEngineGameServer/          # This repository
-├── .env                           # Environment configuration
-├── docker-compose.yml             # Service orchestration
-├── Dockerfile                     # Server container image
-├── GameServer.sh                  # Server startup script
-├── README.md                      # This file
-├── DjangoBackend/                 # Django REST API
-│   ├── Dockerfile
-│   ├── entrypoint.sh
-│   └── config/
-├── Scripts/                       # Build automation
-│   ├── build.sh
-│   ├── clean_build.sh
-│   ├── gen_server_target.sh
-│   └── copy_project_files.sh
-├── UnrealProjects/                # Source code and builds
-│   ├── UnrealEngine/              # Engine source
-│   └── YourProjectName/           # Your game project
-│       ├── Build/LinuxServer/     # Packaged server build
-│       ├── Binaries/
-│       ├── Content/
-│       ├── Config/
-│       ├── Source/
-│       └── YourProjectName.uproject
-├── logs/                          # Runtime logs
-│   ├── server/
-│   ├── crashes/
-│   └── abs/
-└── backups/                       # Database backups
+UnrealEngineGameServer/            # This repository
+    .env                           # Environment configuration
+    docker-compose.yml             # Service orchestration
+    Dockerfile                     # Server container image
+    GameServer.sh                  # Server startup script
+    DjangoBackend/                 # Django REST API
+        Dockerfile                 # Django container image
+        entrypoint.sh              # Django startup script
+        config/                    # Django configuration
+    Scripts/                       # Build automation scripts
+        build.sh                   # Main build script
+        check_build.sh             # Build verification
+        clear_all.sh               # Clear all builds
+        clear_build.sh             # Clear build cache
+        clear_engine.sh            # Clear engine cache
+        debug_server.sh            # Debug server script
+        gen_server_target.sh       # Generate server target
+        startup.sh                 # Startup script
+    UnrealProjects/                # Source code and builds
+        UnrealEngine/              # Engine source code
+        <Project Name>/             # Your game project
+            Binaries/              # Compiled binaries
+            Build/                 # Build output directory
+            Config/                # Project configuration
+            Content/               # Game content assets
+            Source/                # C++ source code
+            <Project Name>.uproject # Project file
+    logs/                          # Runtime and build logs
+        abs/                       # Absolute logs
+        crashes/                   # Crash reports
+        logs/                      # General logs
+        server/                    # Server logs
+        ue/                        # Unreal Engine logs
+    backups/                       # Database backups
 ```
 
 ## Quick Start
@@ -64,10 +69,10 @@ Create a `.env` file in the project root:
 
 ```env
 # Unreal Server Settings
-PROJECT_NAME=EvolutionGame
+PROJECT_NAME=<Project Name>
 UE_PORT=7777
 UE_QUERY_PORT=27015
-UE_MAP=/Game/EvolutionGame/Levels/LobbyMap
+UE_MAP=/Game/<Project Name>/Maps/StartMap
 UE_DEBUG=1
 UE_LOGGING=1
 
@@ -80,15 +85,15 @@ DB_PASSWORD=securepassword
 CREATE_SUPERUSER=1
 DJANGO_SUPERUSER_USERNAME=admin
 DJANGO_SUPERUSER_EMAIL=admin@example.com
-DJANGO_SUPERUSER_PASSWORD=admin123
+DJANGO_SUPERUSER_PASSWORD=secureadminpassword
 
 # Build Configuration
 UNREAL_VERSION=5_6
 BUILD_CONFIG=Shipping
 UNREAL_ENGINE_PATH=UnrealProjects/UnrealEngine
-PROJECT_DIR=UnrealProjects/EvolutionGame
-BINARIES_DIR=UnrealProjects/EvolutionGame/Binaries
-BUILD_DIR=UnrealProjects/EvolutionGame/Build
+PROJECT_DIR=UnrealProjects/<Project Name>
+BINARIES_DIR=UnrealProjects/<Project Name>/Binaries
+BUILD_DIR=UnrealProjects/<Project Name>/Build
 
 # Build Optimization
 UBT_NO_UBT_BUILD_ACCELERATOR=1
@@ -567,7 +572,7 @@ docker system prune -a
 ### Custom Game Maps
 Update `.env` to change the default map:
 ```env
-UE_MAP=/Game/YourProject/Levels/YourMap
+UE_MAP=/Game/YourProject/Maps/YourMap
 ```
 
 ### Port Configuration
