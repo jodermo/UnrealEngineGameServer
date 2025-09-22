@@ -12,7 +12,22 @@ UE_LOGGING=${UE_LOGGING:-1}
 BUILD_CONFIG=${BUILD_CONFIG:-Shipping}
 UE_DEBUG=${UE_DEBUG:-0}
 
-BINARY="./LinuxServer/${PROJECT_NAME}/Binaries/Linux/${PROJECT_NAME}Server-Linux-${BUILD_CONFIG}"
+# -----------------------------
+# Binary path resolution
+# -----------------------------
+BASE_DIR="./LinuxServer/${PROJECT_NAME}/Binaries/Linux"
+
+if [ "$BUILD_CONFIG" == "Development" ]; then
+    # Development builds do not carry a suffix
+    BINARY="${BASE_DIR}/${PROJECT_NAME}Server"
+elif [ "$BUILD_CONFIG" == "Shipping" ]; then
+    # Shipping builds have explicit suffix
+    BINARY="${BASE_DIR}/${PROJECT_NAME}Server-Linux-Shipping"
+else
+    # Fallback for other configs (Test, DebugGame, etc.)
+    BINARY="${BASE_DIR}/${PROJECT_NAME}Server-Linux-${BUILD_CONFIG}"
+fi
+
 LOG_FILE="/home/ue-server/logs/Server.log"
 
 echo "========== Unreal Engine Dedicated Server Startup =========="

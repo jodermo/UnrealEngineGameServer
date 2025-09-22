@@ -7,7 +7,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🚀 Starting Django backend initialization...${NC}"
+echo -e "${BLUE}Starting Django backend initialization...${NC}"
 
 # =============================================================================
 # DATABASE READINESS CHECK
@@ -17,7 +17,7 @@ until pg_isready -h ue-database -p 5432 -U "$DB_USER"; do
   echo -e "${YELLOW}Waiting for PostgreSQL at ue-database:5432 as user $DB_USER${NC}"
   sleep 2
 done
-echo -e "${GREEN}✅ Database is ready!${NC}"
+echo -e "${GREEN}Database is ready!${NC}"
 
 # =============================================================================
 # ENSURE DIRECTORY STRUCTURE
@@ -78,7 +78,7 @@ if [ ! -f config/entities.json ]; then
   }
 }
 EOF
-    echo -e "${GREEN}✅ Created default entities.json${NC}"
+    echo -e "${GREEN}Created default entities.json${NC}"
 fi
 
 # =============================================================================
@@ -128,11 +128,11 @@ run_generator() {
                     echo "$line"
                 fi
             done
-        ) || echo -e "${YELLOW}⚠️ $component_name generation completed with warnings${NC}"
+        ) || echo -e "${YELLOW}$component_name generation completed with warnings${NC}"
         
-        echo -e "${GREEN}✅ $component_name generation finished${NC}"
+        echo -e "${GREEN}$component_name generation finished${NC}"
     else
-        echo -e "${YELLOW}⚠️ $script_name not found${NC}"
+        echo -e "${YELLOW}$script_name not found${NC}"
     fi
 }
 
@@ -144,12 +144,12 @@ run_generator "generate_admin.py" "Admin"
 run_generator "generate_urls.py" "URLs"
 run_generator "generate_migrations.py" "Migrations"
 
-echo -e "${GREEN}✅ Component generation completed${NC}"
+echo -e "${GREEN}Component generation completed${NC}"
 
 # =============================================================================
 # DATABASE MIGRATIONS
 # =============================================================================
-echo -e "${BLUE}🗄️ Running database migrations...${NC}"
+echo -e "${BLUE}Running database migrations...${NC}"
 
 # Create migrations
 echo -e "${BLUE}Creating migrations...${NC}"
@@ -163,13 +163,13 @@ python manage.py migrate --noinput || {
     python manage.py migrate --noinput || echo -e "${YELLOW}Migrations completed with warnings${NC}"
 }
 
-echo -e "${GREEN}✅ Database migrations completed${NC}"
+echo -e "${GREEN}Database migrations completed${NC}"
 
 # =============================================================================
 # SUPERUSER CREATION
 # =============================================================================
 if [ "$CREATE_SUPERUSER" = "1" ]; then
-    echo -e "${BLUE}👤 Creating Django superuser...${NC}"
+    echo -e "${BLUE}Creating Django superuser...${NC}"
     
     python manage.py shell << EOF || echo -e "${YELLOW}Superuser creation completed${NC}"
 import os
@@ -183,26 +183,26 @@ try:
 
     if not User.objects.filter(username=username).exists():
         User.objects.create_superuser(username=username, email=email, password=password)
-        print(f'✅ Superuser "{username}" created successfully')
+        print(f'Superuser "{username}" created successfully')
     else:
-        print(f'ℹ️ Superuser "{username}" already exists')
+        print(f'ℹSuperuser "{username}" already exists')
 except Exception as e:
-    print(f'⚠️ Superuser creation issue: {e}')
+    print(f'Superuser creation issue: {e}')
 EOF
     
-    echo -e "${GREEN}✅ Superuser setup completed${NC}"
+    echo -e "${GREEN}Superuser setup completed${NC}"
 fi
 
 # =============================================================================
 # STATIC FILES
 # =============================================================================
-echo -e "${BLUE}📁 Collecting static files...${NC}"
+echo -e "${BLUE}Collecting static files...${NC}"
 python manage.py collectstatic --noinput || echo -e "${YELLOW}Static files collection completed${NC}"
 
 # =============================================================================
 # FINAL SYSTEM CHECK
 # =============================================================================
-echo -e "${BLUE}🔍 Running final checks...${NC}"
+echo -e "${BLUE}Running final checks...${NC}"
 
 # Test database connection
 python -c "
@@ -210,34 +210,34 @@ from django.db import connection
 try:
     cursor = connection.cursor()
     cursor.execute('SELECT 1')
-    print('✅ Database connection OK')
+    print('Database connection OK')
 except Exception as e:
-    print(f'⚠️ Database connection issue: {e}')
+    print(f'Database connection issue: {e}')
 " || echo -e "${YELLOW}Database check completed${NC}"
 
 # =============================================================================
 # STARTUP SUMMARY
 # =============================================================================
 echo
-echo -e "${GREEN}🎉 Django backend initialization completed!${NC}"
+echo -e "${GREEN}Django backend initialization completed!${NC}"
 echo
-echo "📊 Startup Summary:"
-echo "  - Database: Connected ✅"
-echo "  - Migrations: Applied ✅" 
-echo "  - Components: Generated ✅"
-echo "  - Static Files: Collected ✅"
+echo "Startup Summary:"
+echo "  - Database: Connected"
+echo "  - Migrations: Applied" 
+echo "  - Components: Generated"
+echo "  - Static Files: Collected"
 if [ "$CREATE_SUPERUSER" = "1" ]; then
-    echo "  - Superuser: Ready ✅"
+    echo "  - Superuser: Ready"
 fi
 echo
-echo "🌐 Service will be available at:"
+echo "Service will be available at:"
 echo "  - API: http://localhost:8000/api/"
 echo "  - Admin: http://localhost:8000/admin/"
 echo "  - Health: http://localhost:8000/api/health/"
 echo "  - Dashboard: http://localhost:8000/"
 echo
 if [ "$CREATE_SUPERUSER" = "1" ]; then
-    echo "🔑 Admin Credentials:"
+    echo "Admin Credentials:"
     echo "  - Username: ${DJANGO_SUPERUSER_USERNAME:-admin}"
     echo "  - Password: ${DJANGO_SUPERUSER_PASSWORD:-admin123}"
     echo
@@ -246,7 +246,7 @@ fi
 # =============================================================================
 # START DJANGO SERVER
 # =============================================================================
-echo -e "${GREEN}🚀 Starting Django development server...${NC}"
+echo -e "${GREEN}Starting Django development server...${NC}"
 echo -e "${GREEN}Server starting on http://0.0.0.0:8000${NC}"
 echo
 

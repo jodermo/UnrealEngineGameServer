@@ -37,36 +37,6 @@ class Item(models.Model):
         return cls.objects.order_by('-id')[:limit]
 
 
-class Player(models.Model):
-    """
-    Player model
-    Auto-generated from entities.json configuration
-    """
-
-    username = models.CharField(max_length=50, unique=True)
-    email = models.EmailField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = 'Player'
-        verbose_name_plural = 'Players'
-        ordering = ('-created_at',)
-
-    def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return str(self.username)
-
-    def get_absolute_url(self):
-        from django.urls import reverse
-        return reverse('player-detail', kwargs={'pk': self.pk})
-
-    @classmethod
-    def get_recent(cls, limit=10):
-        return cls.objects.order_by('-id')[:limit]
-
-
 class Guild(models.Model):
     """
     Guild model
@@ -92,6 +62,36 @@ class Guild(models.Model):
     def get_absolute_url(self):
         from django.urls import reverse
         return reverse('guild-detail', kwargs={'pk': self.pk})
+
+    @classmethod
+    def get_recent(cls, limit=10):
+        return cls.objects.order_by('-id')[:limit]
+
+
+class Player(models.Model):
+    """
+    Player model
+    Auto-generated from entities.json configuration
+    """
+
+    username = models.CharField(max_length=50, unique=True)
+    email = models.EmailField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Player'
+        verbose_name_plural = 'Players'
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return str(self.username)
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('player-detail', kwargs={'pk': self.pk})
 
     @classmethod
     def get_recent(cls, limit=10):

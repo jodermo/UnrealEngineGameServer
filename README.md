@@ -90,7 +90,7 @@ DJANGO_SUPERUSER_PASSWORD=admin123
 
 # Build Configuration
 UNREAL_VERSION=5_6
-BUILD_CONFIG=Shipping
+BUILD_CONFIG=Development # or Shipping
 UNREAL_ENGINE_PATH=UnrealProjects/UnrealEngine
 PROJECT_DIR=UnrealProjects/<ProjectName>
 BINARIES_DIR=UnrealProjects/<ProjectName>/Binaries
@@ -698,10 +698,10 @@ docker-compose logs -f ue-game-server
 
 # Check if binary exists and is executable
 docker-compose exec ue-game-server ls -la ./LinuxServer/
-docker-compose exec ue-game-server file ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping
+docker-compose exec ue-game-server file ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Development
 
 # Test binary dependencies
-docker-compose exec ue-game-server ldd ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping
+docker-compose exec ue-game-server ldd ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Development
 ```
 
 #### Permission Issues
@@ -792,13 +792,13 @@ docker system prune -a  # Clean unused resources
 #### Binary Analysis
 ```bash
 # Check binary dependencies
-ldd ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping
+ldd ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Development
 
 # Verify binary architecture
-file ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping
+file ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Development
 
 # Check for symbols
-nm ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Shipping | head
+nm ./LinuxServer/<ProjectName>/Binaries/Linux/<ProjectName>Server-Linux-Development | head
 ```
 
 ### Performance Optimization
